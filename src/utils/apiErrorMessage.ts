@@ -1,5 +1,15 @@
 import axios from 'axios'
 
+const FIELD_LABELS: Record<string, string> = {
+  kind: 'Type (kind)',
+  name: 'Nom',
+  slug: 'Identifiant (slug)',
+  capacity: 'Capacité',
+  description: 'Description',
+  is_active: 'Actif',
+  extra: 'Métadonnées',
+}
+
 function parseDrfData(data: unknown): string | null {
   if (!data || typeof data !== 'object') return null
   const record = data as Record<string, unknown>
@@ -9,13 +19,18 @@ function parseDrfData(data: unknown): string | null {
     const first = detail.find((v) => typeof v === 'string' && v.trim())
     if (typeof first === 'string') return first
   }
-  for (const value of Object.values(record)) {
-    if (typeof value === 'string' && value.trim()) return value
-    if (Array.isArray(value)) {
+  const parts: string[] = []
+  for (const [key, value] of Object.entries(record)) {
+    if (key === 'detail') continue
+    const label = FIELD_LABELS[key] ?? key
+    if (typeof value === 'string' && value.trim()) {
+      parts.push(`${label} : ${value}`)
+    } else if (Array.isArray(value)) {
       const first = value.find((v) => typeof v === 'string' && v.trim())
-      if (typeof first === 'string') return first
+      if (typeof first === 'string') parts.push(`${label} : ${first}`)
     }
   }
+  if (parts.length) return parts.join(' · ')
   return null
 }
 

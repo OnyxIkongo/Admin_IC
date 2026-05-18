@@ -38,26 +38,32 @@ export const spacesService = {
   },
 
   async create(body: SpaceWriteBody): Promise<Space> {
-    const { data } = await http.post<ApiSpace>('/admin/spaces/', buildSpacePayload(body))
+    const { data } = await http.post<ApiSpace>(
+      '/admin/spaces/',
+      buildSpacePayload(body, { uniqueSlug: true }),
+    )
     return mapSpaceToDomain(data)
   },
 
   async update(id: Id, body: Partial<SpaceWriteBody>): Promise<Space> {
     const current = await http.get<ApiSpace>(`/admin/spaces/${id}/`)
     const extra = (current.data.extra ?? {}) as Record<string, unknown>
-    const payload = buildSpacePayload({
-      name: body.name ?? current.data.name,
-      type: body.type ?? mapSpaceToDomain(current.data).type,
-      capacity_label: body.capacity_label ?? String(extra.capacity_label ?? ''),
-      price_label: body.price_label ?? String(extra.price_label ?? 'Sur demande'),
-      price_unit_label: body.price_unit_label ?? String(extra.price_unit_label ?? 'par réservation'),
-      availability: body.availability ?? String(extra.availability ?? 'available'),
-      availability_label: body.availability_label ?? String(extra.availability_label ?? ''),
-      image_url: body.image_url ?? String(extra.image_url ?? ''),
-      description: body.description ?? current.data.description ?? '',
-      equipment: body.equipment ?? (extra.equipment as unknown[] | undefined),
-      is_active: body.is_active ?? current.data.is_active,
-    })
+    const payload = buildSpacePayload(
+      {
+        name: body.name ?? current.data.name,
+        type: body.type ?? mapSpaceToDomain(current.data).type,
+        capacity_label: body.capacity_label ?? String(extra.capacity_label ?? ''),
+        price_label: body.price_label ?? String(extra.price_label ?? 'Sur demande'),
+        price_unit_label: body.price_unit_label ?? String(extra.price_unit_label ?? 'par réservation'),
+        availability: body.availability ?? String(extra.availability ?? 'available'),
+        availability_label: body.availability_label ?? String(extra.availability_label ?? ''),
+        image_url: body.image_url ?? String(extra.image_url ?? ''),
+        description: body.description ?? current.data.description ?? '',
+        equipment: body.equipment ?? (extra.equipment as unknown[] | undefined),
+        is_active: body.is_active ?? current.data.is_active,
+      },
+      { slug: current.data.slug },
+    )
     const { data } = await http.patch<ApiSpace>(`/admin/spaces/${id}/`, payload)
     return mapSpaceToDomain(data)
   },

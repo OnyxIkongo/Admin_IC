@@ -13,5 +13,6 @@ services:
         source: /*
         destination: /index.html
     envVars:
+      # Obligatoire : https:// au début (sinon ERR_NAME_NOT_RESOLVED)
       - key: VITE_API_BASE_URL
         value: "https://ingenious-city-api.onrender.com/api"

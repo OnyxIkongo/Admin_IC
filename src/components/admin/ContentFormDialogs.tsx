@@ -476,13 +476,14 @@ export function SpaceFormDialog({
   }
 
   const submit = async () => {
+    if (saving) return
     setError(null)
     const body: SpaceWriteBody = {
       name: name.trim(),
       type,
       capacity_label: '',
-      price_label: '',
-      price_unit_label: '',
+      price_label: priceBasic.trim() || pricePremium.trim() || 'Sur demande',
+      price_unit_label: 'par réservation',
       pricing_tiers: [
         ...(priceBasic.trim()
           ? [

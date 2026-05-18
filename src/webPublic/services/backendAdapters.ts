@@ -1,4 +1,5 @@
 import type { Event, Id, Program, Space } from '@/types/domain'
+import { resolveMediaUrl } from '@/utils/mediaUrl'
 
 type Dict = Record<string, unknown>
 
@@ -19,9 +20,9 @@ function asArray(value: unknown): unknown[] {
 }
 
 function getImageUrl(primary: unknown, fallback: unknown): string {
-  const a = asString(primary)
+  const a = resolveMediaUrl(asString(primary))
   if (a) return a
-  return asString(fallback)
+  return resolveMediaUrl(asString(fallback))
 }
 
 export type ApiSpace = {
@@ -495,20 +496,37 @@ type SpacePayloadInput = {
   is_active?: boolean
 }
 
-export function buildSpacePayload(body: SpacePayloadInput): Dict {
+function buildUniqueSpaceSlug(name: string): string {
+  const base = slugifyValue(name) || `space-${Date.now()}`
+  const suffix = Math.random().toString(36).slice(2, 8)
+  return `${base}-${suffix}`.slice(0, 280)
+}
+
+export type BuildSpacePayloadOptions = {
+  /** Slug existant (PATCH) — ne pas le recalculer depuis le nom. */
+  slug?: string
+  /** POST : suffixe aléatoire pour éviter 400 « slug déjà utilisé ». */
+  uniqueSlug?: boolean
+}
+
+export function buildSpacePayload(body: SpacePayloadInput, options?: BuildSpacePayloadOptions): Dict {
   const kind = mapAdminSpaceTypeToKind(body.type)
-  return {
+  let slug = options?.slug?.trim() || slugifyValue(body.name)
+  if (!slug) slug = `space-${Date.now()}`
+  if (options?.uniqueSlug && !options.slug) slug = buildUniqueSpaceSlug(body.name)
+
+  const capacity = numberFromCapacityLabel(body.capacity_label)
+  const payload: Dict = {
     kind,
-    name: body.name,
-    slug: slugifyValue(body.name),
-    description: body.description,
-    capacity: numberFromCapacityLabel(body.capacity_label),
+    name: body.name.trim(),
+    slug,
+    description: body.description ?? '',
     is_active: body.is_active ?? true,
     extra: {
       display_type: body.type,
       capacity_label: body.capacity_label,
-      price_label: body.price_label,
-      price_unit_label: body.price_unit_label,
+      price_label: body.price_label || 'Sur demande',
+      price_unit_label: body.price_unit_label || 'par réservation',
       pricing_tiers: body.pricing_tiers ?? [],
       availability: body.availability ?? 'available',
       availability_label: body.availability_label ?? '',
@@ -516,4 +534,6 @@ export function buildSpacePayload(body: SpacePayloadInput): Dict {
       equipment: body.equipment ?? [],
     },
   }
+  if (capacity != null && capacity > 0) payload.capacity = capacity
+  return payload
 }
