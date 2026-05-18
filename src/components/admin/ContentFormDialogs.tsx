@@ -230,13 +230,7 @@ function ActivityFormDialog<TInitial>({ open, onClose, initial, onSaved, config 
       onSaved()
       onClose()
     } catch (e: unknown) {
-      const msg =
-        e && typeof e === 'object' && 'response' in e
-          ? JSON.stringify((e as { response?: { data?: unknown } }).response?.data)
-          : e instanceof Error
-            ? e.message
-            : 'Enregistrement impossible.'
-      setError(msg)
+      setError(apiErrorMessage(e))
     } finally {
       setSaving(false)
     }
@@ -344,6 +338,7 @@ const eventDialogConfig: ActivityFormConfig<Event> = {
       title: title.trim(),
       category: 'Innovation',
       starts_at: startsISO,
+      ends_at: endsISO,
       time_display: timeDisplay.trim(),
       location_name: locationName.trim(),
       address: address.trim(),

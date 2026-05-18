@@ -11,6 +11,7 @@ export type EventWriteBody = {
   title: string
   category: string
   starts_at: string
+  ends_at?: string
   time_display: string
   location_name: string
   address?: string
@@ -46,10 +47,12 @@ export const eventsService = {
 
   async update(id: Id, body: Partial<EventWriteBody>): Promise<Event> {
     const current = await http.get<ApiActivity>(`/admin/activities/${id}/`)
-    const payload = buildEventActivityPayload({
+    const payload = buildEventActivityPayload(
+      {
       title: body.title ?? current.data.title,
       category: body.category ?? String((current.data.extra as Record<string, unknown> | null)?.category ?? 'Innovation'),
       starts_at: body.starts_at ?? current.data.starts_at ?? '',
+      ends_at: body.ends_at ?? current.data.ends_at ?? undefined,
       time_display:
         body.time_display ?? String((current.data.extra as Record<string, unknown> | null)?.time_display ?? ''),
       location_name:
@@ -64,7 +67,9 @@ export const eventsService = {
         body.registration_link !== undefined
           ? body.registration_link
           : (current.data.registration_link ?? null),
-    })
+      },
+      current.data,
+    )
     const { data } = await http.patch<ApiActivity>(`/admin/activities/${id}/`, payload)
     return mapActivityToEvent(data)
   },

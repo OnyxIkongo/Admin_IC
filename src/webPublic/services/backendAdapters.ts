@@ -26,10 +26,13 @@ function getImageUrl(primary: unknown, fallback: unknown): string {
 
 export type ApiSpace = {
   id: string | number
+  kind?: string
   name: string
+  slug?: string
   description?: string | null
   type?: string | null
   image?: string | null
+  image_url?: string | null
   is_active?: boolean
   extra?: unknown
 }
@@ -51,6 +54,7 @@ export type ApiActivity = {
   published?: boolean
   is_published?: boolean
   image?: string | null
+  image_url?: string | null
   space?: ApiActivitySpaceRef | null
   extra?: unknown
 }
@@ -58,33 +62,30 @@ export type ApiActivity = {
 export type ApiEnrollment = {
   id: string | number
   activity: string | number
+  guest_full_name?: string | null
+  guest_email?: string | null
+  guest_phone?: string | null
   full_name?: string | null
   name?: string | null
   email?: string | null
   phone?: string | null
-  company?: string | null
-  motivation?: string | null
   created_at?: string | null
   createdAt?: string | null
 }
 
 export type ApiBooking = {
   id: string | number
+  space: string | number
+  space_name?: string | null
   status?: string | null
-  full_name?: string | null
-  name?: string | null
-  email?: string | null
-  phone?: string | null
-  message?: string | null
-  date?: string | null
-  date_iso?: string | null
-  start_time?: string | null
-  end_time?: string | null
-  time?: string | null
+  guest_full_name?: string | null
+  guest_email?: string | null
+  guest_phone?: string | null
+  start_at?: string | null
+  end_at?: string | null
+  note?: string | null
   created_at?: string | null
   createdAt?: string | null
-  space?: string | number | ApiSpace | null
-  space_type?: string | null
 }
 
 export function asList<T>(value: unknown): T[] {
@@ -147,34 +148,77 @@ function parseEquipment(raw: unknown): Space['equipment'] {
     }))
 }
 
+function formatDateOnly(iso: string): string {
+  if (!iso) return ''
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return iso.slice(0, 10)
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+function formatHourMinute(iso: string): string {
+  if (!iso) return ''
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+}
+
+function buildTimeDisplay(startsAt: string, endsAt: string, fallback?: string): string {
+  const explicit = asString(fallback).trim()
+  if (explicit) return explicit
+  const start = formatHourMinute(startsAt)
+  const end = formatHourMinute(endsAt)
+  if (start && end) return `${start} - ${end}`
+  return start || end || ''
+}
+
+function mapBookingStatus(statusRaw: string): 'pending' | 'validated' | 'rejected' {
+  const s = statusRaw.trim().toLowerCase()
+  if (s === 'confirmed') return 'validated'
+  if (s === 'cancelled' || s === 'canceled' || s === 'rejected') return 'rejected'
+  return 'pending'
+}
+
+function mapBookingKindToReservationChoice(kind: string): 'Bureau Privé' | 'Co-working' | 'Réunion' | 'Événement' {
+  if (kind === 'office') return 'Bureau Privé'
+  if (kind === 'coworking') return 'Co-working'
+  if (kind === 'event_room') return 'Événement'
+  return 'Réunion'
+}
+
 function toReservationSpaceType(raw: string): 'Bureau Privé' | 'Co-working' | 'Réunion' | 'Événement' {
   const key = raw.trim().toLowerCase()
-  if (key.includes('private')) return 'Bureau Privé'
+  if (key.includes('private') || key === 'office') return 'Bureau Privé'
   if (key.includes('cowork')) return 'Co-working'
   if (key.includes('meeting') || key.includes('reunion') || key.includes('réunion')) return 'Réunion'
-  return 'Événement'
+  if (key.includes('event')) return 'Événement'
+  return 'Réunion'
 }
 
 export function mapActivityToEvent(activity: ApiActivity): Event {
   const extra = asRecord(activity.extra)
   const published = activity.is_published ?? activity.published ?? false
+  const startsAt = asString(activity.starts_at)
+  const endsAt = asString(activity.ends_at)
   return {
     id: String(activity.id),
     slug: asString(activity.slug),
     title: asString(activity.title),
     category: asString(extra.category, 'Innovation') as Event['category'],
-    dateISO: asString(activity.starts_at),
-    time: asString(extra.time_display),
+    dateISO: formatDateOnly(startsAt),
+    time: buildTimeDisplay(startsAt, endsAt, asString(extra.time_display)),
     locationName: asString(extra.location_name, asString(activity.space?.name)),
     address: asString(extra.address),
     priceLabel: asString(extra.price_label, 'Gratuit'),
-    imageUrl: getImageUrl(extra.image_url, activity.image),
+    imageUrl: getImageUrl(activity.image_url, getImageUrl(extra.image_url, activity.image)),
     description: asString(activity.description),
     speakers: parseSpeakers(extra.speakers),
     isPublished: published,
     is_published: published,
-    starts_at: asString(activity.starts_at),
-    ends_at: asString(activity.ends_at),
+    starts_at: startsAt,
+    ends_at: endsAt,
     registrationLink: activity.registration_link ?? null,
     registration_link: activity.registration_link ?? null,
   }
@@ -183,17 +227,21 @@ export function mapActivityToEvent(activity: ApiActivity): Event {
 export function mapActivityToProgram(activity: ApiActivity): Program {
   const extra = asRecord(activity.extra)
   const published = activity.is_published ?? activity.published ?? false
+  const startsAt = asString(activity.starts_at)
   return {
     id: String(activity.id),
     slug: asString(activity.slug),
     title: asString(activity.title),
     category: asString(extra.category, 'Formation'),
-    dateRangeLabel: asString(extra.date_range_label),
+    dateRangeLabel: asString(extra.date_range_label, formatDateOnly(startsAt)),
     locationLabel: asString(extra.location_label, asString(activity.space?.name)),
-    durationLabel: asString(extra.duration_label),
+    durationLabel: asString(
+      extra.duration_label,
+      buildTimeDisplay(startsAt, asString(activity.ends_at)),
+    ),
     levelLabel: asString(extra.level_label, 'Tous niveaux'),
     priceLabel: asString(extra.price_label, 'Sur demande'),
-    imageUrl: getImageUrl(extra.image_url, activity.image),
+    imageUrl: getImageUrl(activity.image_url, getImageUrl(extra.image_url, activity.image)),
     summary: asString(extra.summary, asString(activity.description)),
     description: asString(activity.description),
     objectives: parseObjectives(extra.objectives),
@@ -205,9 +253,41 @@ export function mapActivityToProgram(activity: ApiActivity): Program {
   }
 }
 
+function mapSpaceKindToLabel(kind: string): Space['type'] {
+  if (kind === 'office') return 'Private Office'
+  if (kind === 'coworking') return 'Coworking'
+  if (kind === 'event_room') return 'Event Space'
+  return 'Meeting Room'
+}
+
+export function slugifyValue(input: string): string {
+  return input
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80)
+}
+
+function mapAdminSpaceTypeToKind(type: string): string {
+  if (type === 'Private Office') return 'office'
+  if (type === 'Coworking') return 'coworking'
+  if (type === 'Event Space') return 'event_room'
+  return 'event_room'
+}
+
+function numberFromCapacityLabel(label: string): number | null {
+  const match = label.match(/\d+/)
+  return match ? Number(match[0]) : null
+}
+
 export function mapSpaceToDomain(space: ApiSpace): Space {
   const extra = asRecord(space.extra)
-  const type = asString(space.type || extra.type, 'Meeting Room')
+  const apiKind = asString(space.kind)
+  const type = apiKind
+    ? mapSpaceKindToLabel(apiKind)
+    : asString(space.type || extra.display_type || extra.type, 'Meeting Room')
   const availability = asString(extra.availability, 'available') as Space['availability']
   return {
     id: String(space.id),
@@ -219,7 +299,7 @@ export function mapSpaceToDomain(space: ApiSpace): Space {
     pricingTiers: parsePricingTiers(extra.pricing_tiers),
     availability: availability === 'limited' || availability === 'occupied' ? availability : 'available',
     availabilityLabel: asString(extra.availability_label),
-    imageUrl: getImageUrl(extra.image_url, space.image),
+    imageUrl: getImageUrl(space.image_url, getImageUrl(extra.image_url, space.image)),
     description: asString(space.description),
     equipment: parseEquipment(extra.equipment),
     isActive: space.is_active !== false,
@@ -235,8 +315,6 @@ export function mapEnrollmentToRegistration(
   fullName: string
   email: string
   phone: string
-  company?: string
-  motivation?: string
   targetType: 'event' | 'program'
   targetId: Id
   createdAtISO: string
@@ -244,11 +322,9 @@ export function mapEnrollmentToRegistration(
   const created = enrollment.created_at || enrollment.createdAt || new Date().toISOString()
   return {
     id: String(enrollment.id),
-    fullName: asString(enrollment.full_name || enrollment.name),
-    email: asString(enrollment.email),
-    phone: asString(enrollment.phone),
-    company: asString(enrollment.company),
-    motivation: asString(enrollment.motivation),
+    fullName: asString(enrollment.guest_full_name || enrollment.full_name || enrollment.name),
+    email: asString(enrollment.guest_email || enrollment.email),
+    phone: asString(enrollment.guest_phone || enrollment.phone),
     targetType,
     targetId: String(enrollment.activity),
     createdAtISO: asString(created, new Date().toISOString()),
@@ -274,46 +350,31 @@ export function mapBookingToReservation(
   spaceId?: Id
   spaceName?: string
 } {
-  const spaceRef = booking.space
-  const spaceId =
-    typeof spaceRef === 'string' || typeof spaceRef === 'number'
-      ? String(spaceRef)
-      : isRecord(spaceRef)
-        ? asString(spaceRef.id)
-        : ''
+  const spaceId = String(booking.space)
   const linkedSpace = spaceById.get(spaceId)
-
-  const start = asString(booking.start_time)
-  const end = asString(booking.end_time)
-  const fallbackTime = asString(booking.time)
-  const fullTime = start && end ? `${start} - ${end}` : fallbackTime || start || end
-
-  const statusRaw = asString(booking.status, 'pending').toLowerCase()
-  const status: 'pending' | 'validated' | 'rejected' =
-    statusRaw === 'validated' || statusRaw === 'accepted'
-      ? 'validated'
-      : statusRaw === 'rejected' || statusRaw === 'cancelled' || statusRaw === 'canceled'
-        ? 'rejected'
-        : 'pending'
-
-  const created = booking.created_at || booking.createdAt || new Date().toISOString()
-  const dateISO = asString(booking.date_iso || booking.date).slice(0, 10)
+  const startAt = asString(booking.start_at)
+  const endAt = asString(booking.end_at)
+  const timeStart = formatHourMinute(startAt)
+  const timeEnd = formatHourMinute(endAt)
+  const apiKind = linkedSpace ? mapAdminSpaceTypeToKind(linkedSpace.type) : ''
 
   return {
     id: String(booking.id),
-    fullName: asString(booking.full_name || booking.name),
-    email: asString(booking.email),
-    phone: asString(booking.phone),
-    spaceType: toReservationSpaceType(asString(booking.space_type || linkedSpace?.type)),
-    dateISO,
-    time: fullTime,
-    timeStart: start || undefined,
-    timeEnd: end || undefined,
-    message: asString(booking.message) || undefined,
-    createdAtISO: asString(created, new Date().toISOString()),
-    status,
+    fullName: asString(booking.guest_full_name),
+    email: asString(booking.guest_email),
+    phone: asString(booking.guest_phone),
+    spaceType: apiKind
+      ? mapBookingKindToReservationChoice(apiKind)
+      : toReservationSpaceType(asString(linkedSpace?.type)),
+    dateISO: formatDateOnly(startAt),
+    time: buildTimeDisplay(startAt, endAt),
+    timeStart: timeStart || undefined,
+    timeEnd: timeEnd || undefined,
+    message: asString(booking.note) || undefined,
+    createdAtISO: asString(booking.created_at || booking.createdAt, new Date().toISOString()),
+    status: mapBookingStatus(asString(booking.status, 'pending')),
     spaceId: spaceId || undefined,
-    spaceName: linkedSpace?.name,
+    spaceName: asString(booking.space_name) || linkedSpace?.name,
   }
 }
 
@@ -321,6 +382,7 @@ type EventPayloadInput = {
   title: string
   category: string
   starts_at: string
+  ends_at?: string
   time_display: string
   location_name: string
   address?: string
@@ -332,14 +394,34 @@ type EventPayloadInput = {
   registration_link?: string | null
 }
 
-export function buildEventActivityPayload(body: EventPayloadInput): Dict {
+function deriveEndIso(startsAt: string, timeDisplay?: string): string {
+  const start = new Date(startsAt)
+  if (Number.isNaN(start.getTime())) return startsAt
+  const raw = (timeDisplay ?? '').trim()
+  const match = raw.match(/(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})/)
+  if (match) {
+    const [hours, minutes] = match[2].split(':').map(Number)
+    const end = new Date(start)
+    end.setHours(hours, minutes, 0, 0)
+    if (end <= start) end.setDate(end.getDate() + 1)
+    return end.toISOString()
+  }
+  return new Date(start.getTime() + 2 * 60 * 60 * 1000).toISOString()
+}
+
+export function buildEventActivityPayload(body: EventPayloadInput, current?: ApiActivity): Dict {
+  const registrationLink = (body.registration_link ?? '').trim()
+  const endsAt = body.ends_at ?? current?.ends_at ?? deriveEndIso(body.starts_at, body.time_display)
   return {
     kind: 'event',
     title: body.title,
+    slug: current?.slug || slugifyValue(body.title),
     description: body.description,
     starts_at: body.starts_at,
+    ends_at: endsAt,
+    max_participants: null,
     published: body.is_published ?? true,
-    registration_link: body.registration_link ?? null,
+    registration_link: registrationLink || null,
     extra: {
       category: body.category,
       time_display: body.time_display,
@@ -371,12 +453,16 @@ type ProgramPayloadInput = {
 }
 
 export function buildProgramActivityPayload(body: ProgramPayloadInput, current?: ApiActivity): Dict {
+  const startsAt = body.starts_at || current?.starts_at || new Date().toISOString()
+  const endsAt = body.ends_at || current?.ends_at || deriveEndIso(startsAt, body.duration_label)
   return {
     kind: 'training',
     title: body.title,
+    slug: current?.slug || slugifyValue(body.title),
     description: body.description,
-    starts_at: body.starts_at ?? current?.starts_at ?? null,
-    ends_at: body.ends_at ?? current?.ends_at ?? null,
+    starts_at: startsAt,
+    ends_at: endsAt,
+    max_participants: null,
     published: body.is_published ?? current?.is_published ?? current?.published ?? true,
     registration_link: current?.registration_link ?? null,
     extra: {
@@ -410,13 +496,16 @@ type SpacePayloadInput = {
 }
 
 export function buildSpacePayload(body: SpacePayloadInput): Dict {
+  const kind = mapAdminSpaceTypeToKind(body.type)
   return {
+    kind,
     name: body.name,
+    slug: slugifyValue(body.name),
     description: body.description,
-    type: body.type,
+    capacity: numberFromCapacityLabel(body.capacity_label),
     is_active: body.is_active ?? true,
     extra: {
-      type: body.type,
+      display_type: body.type,
       capacity_label: body.capacity_label,
       price_label: body.price_label,
       price_unit_label: body.price_unit_label,

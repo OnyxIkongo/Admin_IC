@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { dayjs } from '@/utils/dayjsFr'
 import { Icon } from '@/components/ui/Icon'
 import { reservationsService, type ReservationRecord, type ReservationStatus } from '@/services/reservationsService'
+import { apiErrorMessage } from '@/utils/apiErrorMessage'
+import { ApiErrorBanner } from '@/components/admin/ApiErrorBanner'
 import { cn } from '@/utils/cn'
 
 function statutLabel(s: ReservationStatus): string {
@@ -23,9 +25,23 @@ function dateTitle(dateISO: string): string {
 export function AdminReservationsPage() {
   const [items, setItems] = useState<ReservationRecord[]>([])
   const [filter, setFilter] = useState<'all' | ReservationStatus>('all')
+  const [loadError, setLoadError] = useState<string | null>(null)
+
+  const reload = () => {
+    void reservationsService
+      .listAll()
+      .then((rows) => {
+        setLoadError(null)
+        setItems(rows)
+      })
+      .catch((e) => {
+        setLoadError(apiErrorMessage(e))
+        setItems([])
+      })
+  }
 
   useEffect(() => {
-    void reservationsService.listAll().then(setItems)
+    reload()
   }, [])
 
   const upcomingItems = useMemo(() => {
@@ -53,6 +69,7 @@ export function AdminReservationsPage() {
           Administration
         </p>
         <h2 className="text-2xl font-bold text-on-surface tracking-tight">Réservations</h2>
+        <ApiErrorBanner message={loadError} onDismiss={() => setLoadError(null)} />
         <div className="mt-4 flex gap-2 overflow-x-auto pb-2 no-scrollbar">
           {[
             { key: 'all', label: 'Toutes' },
