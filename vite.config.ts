@@ -14,7 +14,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@webPublic': path.resolve(__dirname, '../Ingenious_city/apps/web-public/src'),
+      '@webPublic': path.resolve(__dirname, './src/webPublic'),
     },
   },
 })

@@ -27,13 +27,13 @@ export const eventsService = {
     const { data } = await http.get<unknown>('/admin/activities/')
     return asList<ApiActivity>(data)
       .filter((item) => item.kind === 'event')
-      .map((a) => ({ ...mapActivityToEvent(a), ends_at: a.ends_at }))
+      .map((a) => mapActivityToEvent(a))
   },
 
   async getById(id: Id): Promise<Event | undefined> {
     try {
       const { data } = await http.get<ApiActivity>(`/admin/activities/${id}/`)
-      return { ...mapActivityToEvent(data), ends_at: data.ends_at }
+      return mapActivityToEvent(data)
     } catch {
       return undefined
     }
@@ -49,7 +49,7 @@ export const eventsService = {
     const payload = buildEventActivityPayload({
       title: body.title ?? current.data.title,
       category: body.category ?? String((current.data.extra as Record<string, unknown> | null)?.category ?? 'Innovation'),
-      starts_at: body.starts_at ?? current.data.starts_at,
+      starts_at: body.starts_at ?? current.data.starts_at ?? '',
       time_display:
         body.time_display ?? String((current.data.extra as Record<string, unknown> | null)?.time_display ?? ''),
       location_name:

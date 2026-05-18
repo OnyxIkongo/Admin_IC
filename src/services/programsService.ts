@@ -30,13 +30,13 @@ export const programsService = {
     const { data } = await http.get<unknown>('/admin/activities/')
     return asList<ApiActivity>(data)
       .filter((item) => item.kind === 'training')
-      .map((a) => ({ ...mapActivityToProgram(a), starts_at: a.starts_at, ends_at: a.ends_at }))
+      .map((a) => mapActivityToProgram(a))
   },
 
   async getById(id: Id): Promise<Program | undefined> {
     try {
       const { data } = await http.get<ApiActivity>(`/admin/activities/${id}/`)
-      return { ...mapActivityToProgram(data), starts_at: data.starts_at, ends_at: data.ends_at }
+      return mapActivityToProgram(data)
     } catch {
       return undefined
     }
@@ -64,8 +64,8 @@ export const programsService = {
         description: body.description ?? current.data.description ?? '',
         objectives: body.objectives ?? (extra.objectives as unknown[] | undefined),
         audience: body.audience ?? (extra.audience as string[] | undefined),
-        starts_at: body.starts_at ?? current.data.starts_at,
-        ends_at: body.ends_at ?? current.data.ends_at,
+        starts_at: body.starts_at ?? current.data.starts_at ?? undefined,
+        ends_at: body.ends_at ?? current.data.ends_at ?? undefined,
         is_published: body.is_published ?? current.data.published,
       },
       current.data,
