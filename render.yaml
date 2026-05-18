@@ -1,14 +1,17 @@
-# Site admin statique — repo Admin_IC (à part de ingenious-city-api).
+# Blueprint Admin_IC (repo séparé) — site admin statique.
+# L’API est sur ingenious-city-api (repo Ingenious_Access / Ingenious_city).
 services:
   - type: web
     name: admin-ic
     runtime: static
+    plan: free
+    region: oregon
     buildCommand: npm install && npm run build
-    staticPublishPath: dist
+    staticPublishPath: ./dist
     routes:
       - type: rewrite
         source: /*
         destination: /index.html
     envVars:
       - key: VITE_API_BASE_URL
-        value: https://ingenious-city-api.onrender.com/api
+        value: "https://ingenious-city-api.onrender.com/api"
