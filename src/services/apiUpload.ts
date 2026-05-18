@@ -42,7 +42,15 @@ export async function postMultipart<T>(path: string, form: FormData): Promise<T>
   const res = await fetch(url, { method: 'POST', headers, body: form })
   const text = await res.text()
   if (!res.ok) {
-    throw new Error(parseErrorBody(text))
+    const msg = parseErrorBody(text)
+    if (res.status === 500) {
+      throw new Error(
+        msg.includes('Upload') || msg.includes('Cloudinary') || msg.includes('disque')
+          ? msg
+          : `${msg} — Sur Render, ajoutez CLOUDINARY_URL sur ingenious-city-api (compte Cloudinary gratuit) puis redéployez.`,
+      )
+    }
+    throw new Error(msg)
   }
   if (!text) return {} as T
   try {

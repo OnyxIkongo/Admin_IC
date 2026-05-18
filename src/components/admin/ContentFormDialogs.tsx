@@ -441,8 +441,7 @@ export function SpaceFormDialog({
   const [name, setName] = useState('')
   const [type, setType] = useState<string>('Meeting Room')
   const [availability, setAvailability] = useState<string>(DEFAULT_AVAILABILITY)
-  const [priceBasic, setPriceBasic] = useState('')
-  const [pricePremium, setPricePremium] = useState('')
+  const [priceLabel, setPriceLabel] = useState('')
   const [imageUrl, setImageUrl] = useState('')
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [description, setDescription] = useState('')
@@ -460,10 +459,12 @@ export function SpaceFormDialog({
       setType(initial.type)
       setAvailability(initial.availability)
       const tiers = initial.pricingTiers ?? []
-      const basic = tiers.find((t) => t.id === 'ac_only') ?? tiers.find((t) => t.id === 'basic') ?? tiers[0]
-      const premium = tiers.find((t) => t.id === 'wifi_ac') ?? tiers.find((t) => t.id === 'premium') ?? tiers[1]
-      setPriceBasic(basic?.priceLabel ?? '')
-      setPricePremium(premium?.priceLabel ?? '')
+      const fromTier =
+        tiers.find((t) => t.id === 'wifi_ac') ??
+        tiers.find((t) => t.id === 'premium') ??
+        tiers.find((t) => t.includesWifi && t.includesAc) ??
+        tiers[0]
+      setPriceLabel(initial.priceLabel?.trim() || fromTier?.priceLabel || '')
       setImageUrl(initial.imageUrl)
       setImageFile(null)
       setDescription(initial.description)
@@ -471,8 +472,7 @@ export function SpaceFormDialog({
       setName('')
       setType('Meeting Room')
       setAvailability(DEFAULT_AVAILABILITY)
-      setPriceBasic('')
-      setPricePremium('')
+      setPriceLabel('')
       setImageUrl('')
       setImageFile(null)
       setDescription('')
@@ -502,37 +502,17 @@ export function SpaceFormDialog({
       name: name.trim(),
       type,
       capacity_label: '',
-      price_label: priceBasic.trim() || pricePremium.trim() || 'Sur demande',
-      price_unit_label: 'par réservation',
-      pricing_tiers: [
-        ...(priceBasic.trim()
-          ? [
-              {
-                id: 'ac_only',
-                label: 'Sans Wi‑Fi (avec climatisation)',
-                priceLabel: priceBasic.trim(),
-                includesWifi: false,
-                includesAc: true,
-              },
-            ]
-          : []),
-        ...(pricePremium.trim()
-          ? [
-              {
-                id: 'wifi_ac',
-                label: 'Avec Wi‑Fi & climatisation',
-                priceLabel: pricePremium.trim(),
-                includesWifi: true,
-                includesAc: true,
-              },
-            ]
-          : []),
-      ],
+      price_label: priceLabel.trim() || 'Sur demande',
+      price_unit_label: 'Wi‑Fi et climatisation inclus',
+      pricing_tiers: [],
       availability,
       availability_label: '',
       image_url: '',
       description: description.trim(),
-      equipment: [],
+      equipment: [
+        { icon: 'wifi', label: 'Wi‑Fi haut débit' },
+        { icon: 'ac_unit', label: 'Climatisation' },
+      ],
       is_active: (initial?.is_active ?? initial?.isActive) !== false,
     }
     if (!body.name) {
@@ -597,12 +577,16 @@ export function SpaceFormDialog({
           </div>
           {/* Champ "État" supprimé */}
           <div>
-            <label className={intakeLabel}>Tarif (sans Wi‑Fi & climatisation)</label>
-            <input className={intakeInput} value={priceBasic} onChange={(e) => setPriceBasic(e.target.value)} placeholder="Ex. 10$ / heure" />
-          </div>
-          <div>
-            <label className={intakeLabel}>Tarif (avec Wi‑Fi & climatisation)</label>
-            <input className={intakeInput} value={pricePremium} onChange={(e) => setPricePremium(e.target.value)} placeholder="Ex. 15$ / heure" />
+            <label className={intakeLabel}>Tarif</label>
+            <input
+              className={intakeInput}
+              value={priceLabel}
+              onChange={(e) => setPriceLabel(e.target.value)}
+              placeholder="Ex. 15 $ / heure"
+            />
+            <p className="mt-1.5 text-xs text-on-surface-variant">
+              Un seul tarif : Wi-Fi et climatisation toujours inclus pour toutes les réservations.
+            </p>
           </div>
           <div>
             <label className={intakeLabel}>Image</label>
