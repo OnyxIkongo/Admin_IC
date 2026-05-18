@@ -65,7 +65,6 @@ export const eventsService = {
         body.location_name ?? String((current.data.extra as Record<string, unknown> | null)?.location_name ?? current.data.space?.name ?? ''),
       address: body.address ?? String((current.data.extra as Record<string, unknown> | null)?.address ?? ''),
       price_label: body.price_label ?? String((current.data.extra as Record<string, unknown> | null)?.price_label ?? 'Gratuit'),
-      image_url: body.image_url ?? String((current.data.extra as Record<string, unknown> | null)?.image_url ?? ''),
       description: body.description ?? current.data.description ?? '',
       speakers: body.speakers ?? ((current.data.extra as Record<string, unknown> | null)?.speakers as unknown[] | undefined),
       is_published: body.is_published ?? current.data.published,

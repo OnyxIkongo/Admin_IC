@@ -65,7 +65,6 @@ export const programsService = {
         duration_label: body.duration_label ?? String(extra.duration_label ?? ''),
         level_label: body.level_label ?? String(extra.level_label ?? 'Tous niveaux'),
         price_label: body.price_label ?? String(extra.price_label ?? 'Sur demande'),
-        image_url: body.image_url ?? String(extra.image_url ?? ''),
         summary: body.summary ?? String(extra.summary ?? current.data.description ?? ''),
         description: body.description ?? current.data.description ?? '',
         objectives: body.objectives ?? (extra.objectives as unknown[] | undefined),

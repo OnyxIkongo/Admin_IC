@@ -1,5 +1,5 @@
 import type { Event, Id, Program, Space } from '@/types/domain'
-import { resolveMediaUrl } from '@/utils/mediaUrl'
+import { pickImageUrl } from '@/utils/mediaUrl'
 
 type Dict = Record<string, unknown>
 
@@ -19,10 +19,15 @@ function asArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : []
 }
 
-function getImageUrl(primary: unknown, fallback: unknown): string {
-  const a = resolveMediaUrl(asString(primary))
-  if (a) return a
-  return resolveMediaUrl(asString(fallback))
+function getImageUrlFromApi(
+  item: { image?: unknown; image_path?: unknown; image_url?: unknown; extra?: unknown },
+): string {
+  return pickImageUrl({
+    image: asString(item.image),
+    image_path: asString(item.image_path),
+    image_url: asString(item.image_url),
+    extra: asRecord(item.extra),
+  })
 }
 
 export type ApiSpace = {
@@ -33,6 +38,7 @@ export type ApiSpace = {
   description?: string | null
   type?: string | null
   image?: string | null
+  image_path?: string | null
   image_url?: string | null
   is_active?: boolean
   extra?: unknown
@@ -55,6 +61,7 @@ export type ApiActivity = {
   published?: boolean
   is_published?: boolean
   image?: string | null
+  image_path?: string | null
   image_url?: string | null
   space?: ApiActivitySpaceRef | null
   extra?: unknown
@@ -213,10 +220,7 @@ export function mapActivityToEvent(activity: ApiActivity): Event {
     locationName: asString(extra.location_name, asString(activity.space?.name)),
     address: asString(extra.address),
     priceLabel: asString(extra.price_label, 'Gratuit'),
-    imageUrl: getImageUrl(
-      activity.image_url,
-      getImageUrl(activity.image, getImageUrl(extra.image_url, '')),
-    ),
+    imageUrl: getImageUrlFromApi(activity),
     description: asString(activity.description),
     speakers: parseSpeakers(extra.speakers),
     isPublished: published,
@@ -245,10 +249,7 @@ export function mapActivityToProgram(activity: ApiActivity): Program {
     ),
     levelLabel: asString(extra.level_label, 'Tous niveaux'),
     priceLabel: asString(extra.price_label, 'Sur demande'),
-    imageUrl: getImageUrl(
-      activity.image_url,
-      getImageUrl(activity.image, getImageUrl(extra.image_url, '')),
-    ),
+    imageUrl: getImageUrlFromApi(activity),
     summary: asString(extra.summary, asString(activity.description)),
     description: asString(activity.description),
     objectives: parseObjectives(extra.objectives),
@@ -306,10 +307,7 @@ export function mapSpaceToDomain(space: ApiSpace): Space {
     pricingTiers: parsePricingTiers(extra.pricing_tiers),
     availability: availability === 'limited' || availability === 'occupied' ? availability : 'available',
     availabilityLabel: asString(extra.availability_label),
-    imageUrl: getImageUrl(
-      space.image_url,
-      getImageUrl(space.image, getImageUrl(extra.image_url, '')),
-    ),
+    imageUrl: getImageUrlFromApi(space),
     description: asString(space.description),
     equipment: parseEquipment(extra.equipment),
     isActive: space.is_active !== false,
@@ -397,7 +395,7 @@ type EventPayloadInput = {
   location_name: string
   address?: string
   price_label: string
-  image_url: string
+  image_url?: string
   description: string
   speakers?: unknown[]
   is_published?: boolean
@@ -438,7 +436,6 @@ export function buildEventActivityPayload(body: EventPayloadInput, current?: Api
       location_name: body.location_name,
       address: body.address ?? '',
       price_label: body.price_label,
-      image_url: body.image_url,
       speakers: body.speakers ?? [],
     },
   }
@@ -452,7 +449,7 @@ type ProgramPayloadInput = {
   duration_label: string
   level_label: string
   price_label: string
-  image_url: string
+  image_url?: string
   summary: string
   description: string
   objectives?: unknown[]
@@ -482,7 +479,6 @@ export function buildProgramActivityPayload(body: ProgramPayloadInput, current?:
       duration_label: body.duration_label,
       level_label: body.level_label,
       price_label: body.price_label,
-      image_url: body.image_url,
       summary: body.summary,
       objectives: body.objectives ?? [],
       audience: body.audience ?? [],
@@ -499,7 +495,7 @@ type SpacePayloadInput = {
   pricing_tiers?: unknown[]
   availability?: string
   availability_label?: string
-  image_url: string
+  image_url?: string
   description: string
   equipment?: unknown[]
   is_active?: boolean
@@ -539,7 +535,6 @@ export function buildSpacePayload(body: SpacePayloadInput, options?: BuildSpaceP
       pricing_tiers: [],
       availability: body.availability ?? 'available',
       availability_label: body.availability_label ?? '',
-      image_url: body.image_url,
       equipment: body.equipment ?? [],
     },
   }

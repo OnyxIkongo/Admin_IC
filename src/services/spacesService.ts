@@ -58,7 +58,6 @@ export const spacesService = {
         price_unit_label: body.price_unit_label ?? String(extra.price_unit_label ?? 'par réservation'),
         availability: body.availability ?? String(extra.availability ?? 'available'),
         availability_label: body.availability_label ?? String(extra.availability_label ?? ''),
-        image_url: body.image_url ?? String(extra.image_url ?? ''),
         description: body.description ?? current.data.description ?? '',
         equipment: body.equipment ?? (extra.equipment as unknown[] | undefined),
         is_active: body.is_active ?? current.data.is_active,

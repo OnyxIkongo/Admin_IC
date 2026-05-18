@@ -45,9 +45,9 @@ export async function postMultipart<T>(path: string, form: FormData): Promise<T>
     const msg = parseErrorBody(text)
     if (res.status === 500) {
       throw new Error(
-        msg.includes('Upload') || msg.includes('Cloudinary') || msg.includes('disque')
+        msg.includes('Upload') || msg.includes('media')
           ? msg
-          : `${msg} — Sur Render, ajoutez CLOUDINARY_URL sur ingenious-city-api (compte Cloudinary gratuit) puis redéployez.`,
+          : `${msg} — Vérifiez que l'API est déployée avec SERVE_LOCAL_MEDIA=true et le dossier media/ accessible.`,
       )
     }
     throw new Error(msg)
