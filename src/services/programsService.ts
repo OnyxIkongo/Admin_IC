@@ -1,4 +1,5 @@
 import type { Id, Program } from '@/types/domain'
+import { postActivityMultipart, uploadActivityImage } from './apiUpload'
 import { http } from './http'
 import {
   asList,
@@ -42,8 +43,13 @@ export const programsService = {
     }
   },
 
-  async create(body: ProgramWriteBody): Promise<Program> {
-    const { data } = await http.post<ApiActivity>('/admin/activities/', buildProgramActivityPayload(body))
+  async create(body: ProgramWriteBody, imageFile?: File): Promise<Program> {
+    const payload = buildProgramActivityPayload(body)
+    if (imageFile) {
+      const data = await postActivityMultipart<ApiActivity>(payload, imageFile)
+      return mapActivityToProgram(data)
+    }
+    const { data } = await http.post<ApiActivity>('/admin/activities/', payload)
     return mapActivityToProgram(data)
   },
 
@@ -75,9 +81,7 @@ export const programsService = {
   },
 
   async uploadImage(id: Id, file: File): Promise<Program> {
-    const form = new FormData()
-    form.append('image', file)
-    const { data } = await http.patch<ApiActivity>(`/admin/activities/${id}/`, form)
+    const data = await uploadActivityImage<ApiActivity>(String(id), file)
     return mapActivityToProgram(data)
   },
 

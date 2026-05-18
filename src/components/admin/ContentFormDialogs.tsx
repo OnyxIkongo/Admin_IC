@@ -349,10 +349,15 @@ const eventDialogConfig: ActivityFormConfig<Event> = {
       is_published: true,
       registration_link: registrationLink.trim() || null,
     }
-    const saved = initial ? await eventsService.update((initial as Event).id, body) : await eventsService.create(body)
-    if (imageFile) {
-      const withImage = await eventsService.uploadImage(saved.id, imageFile)
-      if (!withImage.imageUrl) {
+    if (initial) {
+      const saved = await eventsService.update((initial as Event).id, body)
+      if (imageFile) {
+        const withImage = await eventsService.uploadImage(saved.id, imageFile)
+        if (!withImage.imageUrl) throw new Error('La photo n’a pas été enregistrée sur le serveur. Réessayez.')
+      }
+    } else {
+      const saved = await eventsService.create(body, imageFile ?? undefined)
+      if (imageFile && !saved.imageUrl) {
         throw new Error('La photo n’a pas été enregistrée sur le serveur. Réessayez.')
       }
     }
@@ -399,10 +404,15 @@ const programDialogConfig: ActivityFormConfig<Program> = {
       starts_at: startsISO,
       ends_at: endsISO,
     }
-    const saved = initial ? await programsService.update((initial as Program).id, core) : await programsService.create(core)
-    if (imageFile) {
-      const withImage = await programsService.uploadImage(saved.id, imageFile)
-      if (!withImage.imageUrl) {
+    if (initial) {
+      const saved = await programsService.update((initial as Program).id, core)
+      if (imageFile) {
+        const withImage = await programsService.uploadImage(saved.id, imageFile)
+        if (!withImage.imageUrl) throw new Error('La photo n’a pas été enregistrée sur le serveur. Réessayez.')
+      }
+    } else {
+      const saved = await programsService.create(core, imageFile ?? undefined)
+      if (imageFile && !saved.imageUrl) {
         throw new Error('La photo n’a pas été enregistrée sur le serveur. Réessayez.')
       }
     }

@@ -1,4 +1,5 @@
 import type { Event, Id } from '@/types/domain'
+import { postActivityMultipart, uploadActivityImage } from './apiUpload'
 import { http } from './http'
 import {
   asList,
@@ -40,8 +41,13 @@ export const eventsService = {
     }
   },
 
-  async create(body: EventWriteBody): Promise<Event> {
-    const { data } = await http.post<ApiActivity>('/admin/activities/', buildEventActivityPayload(body))
+  async create(body: EventWriteBody, imageFile?: File): Promise<Event> {
+    const payload = buildEventActivityPayload(body)
+    if (imageFile) {
+      const data = await postActivityMultipart<ApiActivity>(payload, imageFile)
+      return mapActivityToEvent(data)
+    }
+    const { data } = await http.post<ApiActivity>('/admin/activities/', payload)
     return mapActivityToEvent(data)
   },
 
@@ -75,9 +81,7 @@ export const eventsService = {
   },
 
   async uploadImage(id: Id, file: File): Promise<Event> {
-    const form = new FormData()
-    form.append('image', file)
-    const { data } = await http.patch<ApiActivity>(`/admin/activities/${id}/`, form)
+    const data = await uploadActivityImage<ApiActivity>(String(id), file)
     return mapActivityToEvent(data)
   },
 

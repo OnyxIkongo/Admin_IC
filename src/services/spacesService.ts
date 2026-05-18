@@ -1,4 +1,5 @@
 import type { Id, Space } from '@/types/domain'
+import { uploadSpaceImage } from './apiUpload'
 import { http } from './http'
 import {
   asList,
@@ -69,9 +70,7 @@ export const spacesService = {
   },
 
   async uploadImage(id: Id, file: File): Promise<Space> {
-    const form = new FormData()
-    form.append('image', file)
-    const { data } = await http.patch<ApiSpace>(`/admin/spaces/${id}/`, form)
+    const data = await uploadSpaceImage<ApiSpace>(String(id), file)
     return mapSpaceToDomain(data)
   },
 
