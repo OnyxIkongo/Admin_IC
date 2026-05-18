@@ -1,11 +1,9 @@
 import type { AdminSession } from '@/types/domain'
 import axios, { AxiosError } from 'axios'
+import { getApiBaseUrl, isApiConfiguredForProduction } from '@/config/apiBaseUrl'
 
 const STORAGE_KEY = 'ingenious_city_admin_session'
-const baseURL =
-  import.meta.env.VITE_API_URL?.trim() ||
-  import.meta.env.VITE_API_BASE_URL?.trim() ||
-  '/api'
+const baseURL = getApiBaseUrl()
 
 const tokenClient = axios.create({ baseURL, timeout: 20_000 })
 
@@ -31,6 +29,42 @@ function parseApiErrorMessage(err: unknown): string | null {
     }
   }
   return null
+}
+
+function loginErrorMessage(err: unknown): string {
+  if (!(err instanceof AxiosError)) {
+    return 'Impossible de se connecter'
+  }
+
+  if (!isApiConfiguredForProduction()) {
+    return (
+      'API non configurée pour la production. Dans Render → Environment, ajoutez VITE_API_BASE_URL ' +
+      '(ex. https://votre-backend.onrender.com/api), puis redéployez le site admin.'
+    )
+  }
+
+  if (!err.response) {
+    return (
+      'Impossible de joindre le serveur API (réseau ou CORS). Vérifiez que le backend Django est en ligne, ' +
+      `que VITE_API_BASE_URL pointe vers son URL /api, et que CORS_ALLOWED_ORIGINS inclut ${typeof window !== 'undefined' ? window.location.origin : 'votre domaine admin'}.`
+    )
+  }
+
+  const contentType = String(err.response.headers['content-type'] ?? '')
+  if (err.response.status === 404 && contentType.includes('text/html')) {
+    return (
+      'URL API incorrecte : la requête atteint le site admin au lieu du backend. Corrigez VITE_API_BASE_URL sur Render.'
+    )
+  }
+
+  const msg = parseApiErrorMessage(err)
+  if (msg) return msg
+
+  if (err.response.status === 401) {
+    return 'Courriel ou mot de passe incorrect.'
+  }
+
+  return `Erreur de connexion (HTTP ${err.response.status}).`
 }
 
 export const authService = {
@@ -60,8 +94,7 @@ export const authService = {
         password,
       }))
     } catch (e) {
-      const msg = parseApiErrorMessage(e)
-      throw new Error(msg || 'Impossible de se connecter')
+      throw new Error(loginErrorMessage(e))
     }
     const session: AdminSession = {
       access: data.access,

@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
+import { createHashRouter, Navigate, RouterProvider } from 'react-router-dom'
 import { AdminLayout } from '@/components/layout/AdminLayout'
 import { RequireAdmin } from './RequireAdmin'
 
@@ -10,7 +10,8 @@ import { AdminSpacesPage } from '@/pages/admin/AdminSpacesPage'
 import { AdminParticipantsPage } from '@/pages/admin/AdminParticipantsPage'
 import { AdminReservationsPage } from '@/pages/admin/AdminReservationsPage'
 
-const router = createBrowserRouter([
+/** HashRouter : /#/login fonctionne sur Render sans règle Rewrite (fichiers statiques). */
+const router = createHashRouter([
   { path: '/login', element: <AdminLoginPage /> },
   {
     element: <RequireAdmin />,

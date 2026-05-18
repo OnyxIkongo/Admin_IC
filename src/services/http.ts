@@ -1,11 +1,15 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
+import { getApiBaseUrl } from '@/config/apiBaseUrl'
 import { authService } from '@/services/authService'
 
 const SESSION_KEY = 'ingenious_city_admin_session'
-const baseURL =
-  import.meta.env.VITE_API_URL?.trim() ||
-  import.meta.env.VITE_API_BASE_URL?.trim() ||
-  '/api'
+const baseURL = getApiBaseUrl()
+
+function goToLogin() {
+  if (window.location.hash.startsWith('#/login')) return
+  if (window.location.pathname.startsWith('/login')) return
+  window.location.assign('/#/login')
+}
 
 export const http = axios.create({
   baseURL,
@@ -56,26 +60,20 @@ http.interceptors.response.use(
 
     if (isRefreshCall) {
       authService.logout()
-      if (!window.location.pathname.startsWith('/login')) {
-        window.location.assign('/login')
-      }
+      goToLogin()
       return Promise.reject(error)
     }
 
     if (original._retry) {
       authService.logout()
-      if (!window.location.pathname.startsWith('/login')) {
-        window.location.assign('/login')
-      }
+      goToLogin()
       return Promise.reject(error)
     }
 
     const refreshed = await scheduleRefresh()
     if (!refreshed) {
       authService.logout()
-      if (!window.location.pathname.startsWith('/login')) {
-        window.location.assign('/login')
-      }
+      goToLogin()
       return Promise.reject(error)
     }
 

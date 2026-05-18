@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Icon } from '@/components/ui/Icon'
+import { isApiConfiguredForProduction } from '@/config/apiBaseUrl'
 import { authService } from '@/services/authService'
 
 const schema = z.object({
@@ -39,6 +40,13 @@ export function AdminLoginPage() {
             <p className="text-sm text-on-surface-variant">Ingenious City</p>
           </div>
         </div>
+
+        {!isApiConfiguredForProduction() ? (
+          <p className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-100">
+            Déploiement : définissez <code className="text-xs">VITE_API_BASE_URL</code> sur Render (URL du backend +{' '}
+            <code className="text-xs">/api</code>), puis redéployez.
+          </p>
+        ) : null}
 
         <form
           className="space-y-6"
