@@ -76,10 +76,8 @@ export const programsService = {
 
   async uploadImage(id: Id, file: File): Promise<Program> {
     const form = new FormData()
-    form.set('image', file)
-    const { data } = await http.patch<ApiActivity>(`/admin/activities/${id}/`, form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    form.append('image', file)
+    const { data } = await http.patch<ApiActivity>(`/admin/activities/${id}/`, form)
     return mapActivityToProgram(data)
   },
 

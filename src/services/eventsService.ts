@@ -76,10 +76,8 @@ export const eventsService = {
 
   async uploadImage(id: Id, file: File): Promise<Event> {
     const form = new FormData()
-    form.set('image', file)
-    const { data } = await http.patch<ApiActivity>(`/admin/activities/${id}/`, form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    form.append('image', file)
+    const { data } = await http.patch<ApiActivity>(`/admin/activities/${id}/`, form)
     return mapActivityToEvent(data)
   },
 

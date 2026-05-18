@@ -350,7 +350,12 @@ const eventDialogConfig: ActivityFormConfig<Event> = {
       registration_link: registrationLink.trim() || null,
     }
     const saved = initial ? await eventsService.update((initial as Event).id, body) : await eventsService.create(body)
-    if (imageFile) await eventsService.uploadImage(saved.id, imageFile)
+    if (imageFile) {
+      const withImage = await eventsService.uploadImage(saved.id, imageFile)
+      if (!withImage.imageUrl) {
+        throw new Error('La photo n’a pas été enregistrée sur le serveur. Réessayez.')
+      }
+    }
   },
 }
 
@@ -395,7 +400,12 @@ const programDialogConfig: ActivityFormConfig<Program> = {
       ends_at: endsISO,
     }
     const saved = initial ? await programsService.update((initial as Program).id, core) : await programsService.create(core)
-    if (imageFile) await programsService.uploadImage(saved.id, imageFile)
+    if (imageFile) {
+      const withImage = await programsService.uploadImage(saved.id, imageFile)
+      if (!withImage.imageUrl) {
+        throw new Error('La photo n’a pas été enregistrée sur le serveur. Réessayez.')
+      }
+    }
   },
 }
 
@@ -523,7 +533,10 @@ export function SpaceFormDialog({
     try {
       const saved = initial ? await spacesService.update(initial.id, body) : await spacesService.create(body)
       if (imageFile) {
-        await spacesService.uploadImage(saved.id, imageFile)
+        const withImage = await spacesService.uploadImage(saved.id, imageFile)
+        if (!withImage.imageUrl) {
+          throw new Error('La photo n’a pas été enregistrée sur le serveur. Réessayez.')
+        }
       }
       onSaved()
       onClose()

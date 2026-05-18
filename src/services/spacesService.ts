@@ -70,10 +70,8 @@ export const spacesService = {
 
   async uploadImage(id: Id, file: File): Promise<Space> {
     const form = new FormData()
-    form.set('image', file)
-    const { data } = await http.patch<ApiSpace>(`/admin/spaces/${id}/`, form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    form.append('image', file)
+    const { data } = await http.patch<ApiSpace>(`/admin/spaces/${id}/`, form)
     return mapSpaceToDomain(data)
   },
 

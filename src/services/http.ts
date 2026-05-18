@@ -30,6 +30,15 @@ function scheduleRefresh(): Promise<boolean> {
 }
 
 http.interceptors.request.use((config) => {
+  // FormData : ne pas fixer Content-Type (sinon pas de boundary → fichier ignoré par Django).
+  if (config.data instanceof FormData) {
+    if (config.headers && 'set' in config.headers && typeof config.headers.set === 'function') {
+      config.headers.set('Content-Type', false)
+    } else if (config.headers) {
+      delete (config.headers as Record<string, unknown>)['Content-Type']
+    }
+  }
+
   const raw = localStorage.getItem(SESSION_KEY)
   if (!raw) return config
   try {
