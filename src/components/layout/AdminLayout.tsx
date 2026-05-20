@@ -7,9 +7,7 @@ const navItems = [
   { to: '/dashboard', label: 'Tableau', icon: 'dashboard' },
   { to: '/reservations', label: 'Réservations', icon: 'event' },
   { to: '/events', label: 'Événements', icon: 'calendar_today' },
-  { to: '/programs', label: 'Formations', icon: 'school' },
   { to: '/spaces', label: 'Espaces', icon: 'business_center' },
-  { to: '/participants', label: 'Inscrits', icon: 'group' },
 ]
 
 function AdminTopBar() {

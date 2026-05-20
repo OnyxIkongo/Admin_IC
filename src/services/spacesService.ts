@@ -1,5 +1,5 @@
 import type { Id, Space } from '@/types/domain'
-import { uploadSpaceImage } from './apiUpload'
+import { uploadSpaceGallery, uploadSpaceImage } from './apiUpload'
 import { http } from './http'
 import {
   asList,
@@ -70,6 +70,11 @@ export const spacesService = {
 
   async uploadImage(id: Id, file: File): Promise<Space> {
     const data = await uploadSpaceImage<ApiSpace>(String(id), file)
+    return mapSpaceToDomain(data)
+  },
+
+  async uploadGallery(id: Id, files: File[], replace = false): Promise<Space> {
+    const data = await uploadSpaceGallery<ApiSpace>(String(id), files, replace)
     return mapSpaceToDomain(data)
   },
 

@@ -74,6 +74,8 @@ export type Space = {
   availability: SpaceAvailability
   availabilityLabel: string
   imageUrl: string
+  /** 2–3 photos page « Voir détails » (hors couverture accueil). */
+  galleryUrls?: string[]
   description: string
   equipment: { icon: string; label: string }[]
   isActive?: boolean

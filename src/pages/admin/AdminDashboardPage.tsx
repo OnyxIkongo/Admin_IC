@@ -113,18 +113,6 @@ export function AdminDashboardPage() {
               subtitle: 'Publier, éditer, inscriptions',
               icon: 'calendar_today',
             },
-            {
-              to: '/programs',
-              title: 'Formations',
-              subtitle: 'Publier, éditer, candidatures',
-              icon: 'school',
-            },
-            {
-              to: '/participants',
-              title: 'Inscrits',
-              subtitle: 'Vue globale des inscriptions',
-              icon: 'group',
-            },
           ].map((card) => (
             <Link
               key={card.to}

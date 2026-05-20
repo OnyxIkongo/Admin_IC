@@ -1,5 +1,5 @@
 import type { Event, Id, Program, Space } from '@/types/domain'
-import { pickImageUrl } from '@/utils/mediaUrl'
+import { pickImageUrl, resolveMediaUrl } from '@/utils/mediaUrl'
 
 type Dict = Record<string, unknown>
 
@@ -30,16 +30,29 @@ function getImageUrlFromApi(
   })
 }
 
+function parseGalleryUrls(space: ApiSpace, extra: Dict): string[] {
+  const raw =
+    space.gallery_urls ?? extra.gallery_urls ?? extra.gallery_paths ?? extra.gallery
+  return asArray(raw)
+    .map((entry) => asString(entry))
+    .filter((entry) => entry.trim().length > 0)
+    .map((entry) => resolveMediaUrl(entry))
+    .filter((entry) => entry.length > 0)
+    .slice(0, 3)
+}
+
 export type ApiSpace = {
   id: string | number
   kind?: string
   name: string
   slug?: string
   description?: string | null
+  capacity?: number | null
   type?: string | null
   image?: string | null
   image_path?: string | null
   image_url?: string | null
+  gallery_urls?: string[] | null
   is_active?: boolean
   extra?: unknown
 }
@@ -301,13 +314,19 @@ export function mapSpaceToDomain(space: ApiSpace): Space {
     id: String(space.id),
     name: asString(space.name),
     type,
-    capacityLabel: asString(extra.capacity_label),
+    capacityLabel:
+      asString(extra.capacity_label) ||
+      (space.capacity != null && space.capacity > 0 ? `${space.capacity} places` : '') ||
+      'Capacité variable',
     priceLabel: asString(extra.price_label, 'Sur demande'),
     priceUnitLabel: asString(extra.price_unit_label, 'par réservation'),
     pricingTiers: parsePricingTiers(extra.pricing_tiers),
     availability: availability === 'limited' || availability === 'occupied' ? availability : 'available',
-    availabilityLabel: asString(extra.availability_label),
+    availabilityLabel:
+      asString(extra.availability_label) ||
+      (availability === 'limited' ? 'Places limitées' : availability === 'occupied' ? 'Occupé' : 'Disponible'),
     imageUrl: getImageUrlFromApi(space),
+    galleryUrls: parseGalleryUrls(space, extra),
     description: asString(space.description),
     equipment: parseEquipment(extra.equipment),
     isActive: space.is_active !== false,

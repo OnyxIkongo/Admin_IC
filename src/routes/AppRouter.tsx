@@ -5,9 +5,7 @@ import { RequireAdmin } from './RequireAdmin'
 import { AdminLoginPage } from '@/pages/admin/AdminLoginPage'
 import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage'
 import { AdminEventsPage } from '@/pages/admin/AdminEventsPage'
-import { AdminProgramsPage } from '@/pages/admin/AdminProgramsPage'
 import { AdminSpacesPage } from '@/pages/admin/AdminSpacesPage'
-import { AdminParticipantsPage } from '@/pages/admin/AdminParticipantsPage'
 import { AdminReservationsPage } from '@/pages/admin/AdminReservationsPage'
 
 /** HashRouter : /#/login fonctionne sur Render sans règle Rewrite (fichiers statiques). */
@@ -24,9 +22,7 @@ const router = createHashRouter([
           { path: 'dashboard', element: <AdminDashboardPage /> },
           { path: 'reservations', element: <AdminReservationsPage /> },
           { path: 'events', element: <AdminEventsPage /> },
-          { path: 'programs', element: <AdminProgramsPage /> },
           { path: 'spaces', element: <AdminSpacesPage /> },
-          { path: 'participants', element: <AdminParticipantsPage /> },
         ],
       },
     ],

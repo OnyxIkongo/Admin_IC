@@ -22,6 +22,9 @@ function parseErrorBody(text: string): string {
     if (Array.isArray(data.image) && typeof data.image[0] === 'string') {
       return data.image[0]
     }
+    if (Array.isArray(data.images) && typeof data.images[0] === 'string') {
+      return data.images[0]
+    }
     const first = Object.values(data).find((v) => typeof v === 'string' || (Array.isArray(v) && typeof v[0] === 'string'))
     if (typeof first === 'string') return first
     if (Array.isArray(first) && typeof first[0] === 'string') return first[0]
@@ -90,6 +93,20 @@ export async function uploadSpaceImage<T>(id: string, file: File): Promise<T> {
   const form = new FormData()
   form.append('image', file, file.name)
   return postMultipart<T>(`/admin/spaces/${id}/upload-image/`, form)
+}
+
+/** Galerie page Détails : champ multipart `images` (max 3 côté API). */
+export async function uploadSpaceGallery<T>(
+  id: string,
+  files: File[],
+  replace = false,
+): Promise<T> {
+  const form = new FormData()
+  for (const file of files) {
+    form.append('images', file, file.name)
+  }
+  const suffix = replace ? '?replace=true' : ''
+  return postMultipart<T>(`/admin/spaces/${id}/upload-gallery/${suffix}`, form)
 }
 
 /** Fallback axios pour erreurs réseau explicites. */

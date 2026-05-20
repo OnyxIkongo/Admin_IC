@@ -31,6 +31,11 @@ function spaceTypeLabelFr(type: (typeof SPACE_TYPES)[number] | string): string {
 
 const DEFAULT_AVAILABILITY = 'available' as const
 
+function availabilityLabelFor(value: string): string {
+  if (value === 'limited') return 'Places limitées'
+  return 'Disponible'
+}
+
 function toDatetimeLocalValue(iso?: string): string {
   if (!iso) return ''
   const d = new Date(iso)
@@ -440,15 +445,20 @@ export function SpaceFormDialog({
 }) {
   const [name, setName] = useState('')
   const [type, setType] = useState<string>('Meeting Room')
-  const [availability, setAvailability] = useState<string>(DEFAULT_AVAILABILITY)
+  const [capacityLabel, setCapacityLabel] = useState('')
   const [priceLabel, setPriceLabel] = useState('')
   const [imageUrl, setImageUrl] = useState('')
   const [imageFile, setImageFile] = useState<File | null>(null)
+  const [galleryUrls, setGalleryUrls] = useState<string[]>([])
+  const [galleryFiles, setGalleryFiles] = useState<File[]>([])
+  const [galleryPreviews, setGalleryPreviews] = useState<string[]>([])
   const [description, setDescription] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [uploadingGallery, setUploadingGallery] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const galleryInputRef = useRef<HTMLInputElement | null>(null)
 
   useLayoutEffect(() => {
     if (!open) return
@@ -457,7 +467,7 @@ export function SpaceFormDialog({
     if (initial) {
       setName(initial.name)
       setType(initial.type)
-      setAvailability(initial.availability)
+      setCapacityLabel(initial.capacityLabel?.trim() || '')
       const tiers = initial.pricingTiers ?? []
       const fromTier =
         tiers.find((t) => t.id === 'wifi_ac') ??
@@ -467,14 +477,20 @@ export function SpaceFormDialog({
       setPriceLabel(initial.priceLabel?.trim() || fromTier?.priceLabel || '')
       setImageUrl(initial.imageUrl)
       setImageFile(null)
+      setGalleryUrls(initial.galleryUrls ?? [])
+      setGalleryFiles([])
+      setGalleryPreviews([])
       setDescription(initial.description)
     } else {
       setName('')
       setType('Meeting Room')
-      setAvailability(DEFAULT_AVAILABILITY)
+      setCapacityLabel('')
       setPriceLabel('')
       setImageUrl('')
       setImageFile(null)
+      setGalleryUrls([])
+      setGalleryFiles([])
+      setGalleryPreviews([])
       setDescription('')
     }
   }, [open, initial])
@@ -495,18 +511,41 @@ export function SpaceFormDialog({
     }
   }
 
+  const pickGallery = () => {
+    galleryInputRef.current?.click()
+  }
+
+  const selectGallery = async (files: FileList | null) => {
+    if (!files?.length) return
+    setError(null)
+    const picked = Array.from(files).slice(0, 3)
+    if (files.length > 3) {
+      setError('La galerie est limitée à 3 photos.')
+      return
+    }
+    setUploadingGallery(true)
+    try {
+      setGalleryFiles(picked)
+      setGalleryPreviews(picked.map((f) => mediaService.previewUrl(f)))
+    } finally {
+      setUploadingGallery(false)
+      if (galleryInputRef.current) galleryInputRef.current.value = ''
+    }
+  }
+
   const submit = async () => {
     if (saving) return
     setError(null)
+    const availability = initial?.availability || DEFAULT_AVAILABILITY
     const body: SpaceWriteBody = {
       name: name.trim(),
       type,
-      capacity_label: '',
+      capacity_label: capacityLabel.trim(),
       price_label: priceLabel.trim() || 'Sur demande',
       price_unit_label: 'Wi‑Fi et climatisation inclus',
       pricing_tiers: [],
       availability,
-      availability_label: '',
+      availability_label: availabilityLabelFor(availability),
       image_url: '',
       description: description.trim(),
       equipment: [
@@ -525,8 +564,11 @@ export function SpaceFormDialog({
       if (imageFile) {
         const withImage = await spacesService.uploadImage(saved.id, imageFile)
         if (!withImage.imageUrl) {
-          throw new Error('La photo n’a pas été enregistrée sur le serveur. Réessayez.')
+          throw new Error('La photo de couverture n’a pas été enregistrée sur le serveur. Réessayez.')
         }
+      }
+      if (galleryFiles.length > 0) {
+        await spacesService.uploadGallery(saved.id, galleryFiles, true)
       }
       onSaved()
       onClose()
@@ -575,7 +617,18 @@ export function SpaceFormDialog({
               ))}
             </select>
           </div>
-          {/* Champ "État" supprimé */}
+          <div>
+            <label className={intakeLabel}>Capacité</label>
+            <input
+              className={intakeInput}
+              value={capacityLabel}
+              onChange={(e) => setCapacityLabel(e.target.value)}
+              placeholder="Ex. 12 places, 8 personnes max."
+            />
+            <p className="mt-1.5 text-xs text-on-surface-variant">
+              Affichée sur la page Détails du site (section Capacité).
+            </p>
+          </div>
           <div>
             <label className={intakeLabel}>Tarif</label>
             <input
@@ -589,7 +642,7 @@ export function SpaceFormDialog({
             </p>
           </div>
           <div>
-            <label className={intakeLabel}>Image</label>
+            <label className={intakeLabel}>Photo de couverture (page d&apos;accueil)</label>
             <input
               ref={fileInputRef}
               type="file"
@@ -610,7 +663,7 @@ export function SpaceFormDialog({
               )}
             >
               <span className="truncate">
-                {uploadingImage ? 'Upload…' : imageUrl ? 'Changer l’image' : 'Choisir une image'}
+                {uploadingImage ? 'Préparation…' : imageUrl ? 'Changer la couverture' : 'Choisir la couverture'}
               </span>
               <Icon name="image" />
             </button>
@@ -621,10 +674,66 @@ export function SpaceFormDialog({
                 className="mt-3 h-44 w-full object-cover rounded-xl border border-outline-variant/15 bg-surface-container-high"
               />
             ) : null}
+            <p className="mt-1.5 text-xs text-on-surface-variant">
+              Une seule image : carte sur la page d&apos;accueil du site.
+            </p>
+          </div>
+          <div>
+            <label className={intakeLabel}>Galerie page Détails (2 à 3 photos)</label>
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => void selectGallery(e.target.files)}
+            />
+            <button
+              type="button"
+              onClick={pickGallery}
+              disabled={uploadingGallery || saving}
+              className={cn(
+                intakeInput,
+                'text-left font-semibold flex items-center justify-between gap-2 disabled:opacity-70',
+              )}
+            >
+              <span className="truncate">
+                {uploadingGallery
+                  ? 'Préparation…'
+                  : galleryFiles.length > 0
+                    ? `Remplacer la galerie (${galleryFiles.length} fichier${galleryFiles.length > 1 ? 's' : ''})`
+                    : galleryUrls.length > 0
+                      ? 'Remplacer la galerie'
+                      : 'Choisir 2 à 3 photos'}
+              </span>
+              <Icon name="collections" />
+            </button>
+            {(galleryPreviews.length > 0 ? galleryPreviews : galleryUrls).length > 0 ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {(galleryPreviews.length > 0 ? galleryPreviews : galleryUrls).map((url) => (
+                  <img
+                    key={url}
+                    src={url}
+                    alt=""
+                    className="h-20 w-20 object-cover rounded-lg border border-outline-variant/15 bg-surface-container-high"
+                  />
+                ))}
+              </div>
+            ) : null}
+            <p className="mt-1.5 text-xs text-on-surface-variant">
+              Mini-galerie sur « Voir détails ». Nouveau choix = remplacement complet (max 3). Laisser vide pour
+              conserver la galerie actuelle.
+            </p>
           </div>
           <div>
             <label className={intakeLabel}>Description</label>
-            <textarea className={intakeTextarea} rows={5} value={description} onChange={(e) => setDescription(e.target.value)} />
+            <textarea
+              className={intakeTextarea}
+              rows={5}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Texte visible sur la page Détails (retours à la ligne conservés)."
+            />
           </div>
         </div>
       </div>
