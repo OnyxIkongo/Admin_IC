@@ -531,6 +531,8 @@ export type BuildSpacePayloadOptions = {
   slug?: string
   /** POST : suffixe aléatoire pour éviter 400 « slug déjà utilisé ». */
   uniqueSlug?: boolean
+  /** Extra existant (PATCH) — à préserver (ex: gallery_paths). */
+  extra?: Record<string, unknown>
 }
 
 export function buildSpacePayload(body: SpacePayloadInput, options?: BuildSpacePayloadOptions): Dict {
@@ -540,6 +542,7 @@ export function buildSpacePayload(body: SpacePayloadInput, options?: BuildSpaceP
   if (options?.uniqueSlug && !options.slug) slug = buildUniqueSpaceSlug(body.name)
 
   const capacity = numberFromCapacityLabel(body.capacity_label)
+  const prevExtra = options?.extra ?? {}
   const payload: Dict = {
     kind,
     name: body.name.trim(),
@@ -547,6 +550,10 @@ export function buildSpacePayload(body: SpacePayloadInput, options?: BuildSpaceP
     description: body.description ?? '',
     is_active: body.is_active ?? true,
     extra: {
+      // Préserver la galerie (sinon elle disparaît après un PATCH).
+      gallery_paths: prevExtra.gallery_paths,
+      gallery_urls: prevExtra.gallery_urls,
+      gallery: prevExtra.gallery,
       display_type: body.type,
       capacity_label: body.capacity_label,
       price_label: body.price_label || 'Sur demande',

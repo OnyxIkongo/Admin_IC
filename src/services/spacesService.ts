@@ -62,7 +62,7 @@ export const spacesService = {
         equipment: body.equipment ?? (extra.equipment as unknown[] | undefined),
         is_active: body.is_active ?? current.data.is_active,
       },
-      { slug: current.data.slug },
+      { slug: current.data.slug, extra },
     )
     const { data } = await http.patch<ApiSpace>(`/admin/spaces/${id}/`, payload)
     return mapSpaceToDomain(data)
