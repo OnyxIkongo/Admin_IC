@@ -1,9 +1,22 @@
-import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
+import axios, { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
 import { getApiBaseUrl } from '@/config/apiBaseUrl'
 import { authService } from '@/services/authService'
 
 const SESSION_KEY = 'ingenious_city_admin_session'
 const baseURL = getApiBaseUrl()
+
+function setAuthHeader(config: InternalAxiosRequestConfig, token: string) {
+  if (!token) return
+  // Axios v1: headers peut être AxiosHeaders (préférer .set)
+  if (config.headers && 'set' in config.headers && typeof config.headers.set === 'function') {
+    config.headers.set('Authorization', `Bearer ${token}`)
+    return
+  }
+  if (!config.headers) {
+    config.headers = new AxiosHeaders()
+  }
+  ;(config.headers as unknown as AxiosHeaders).set('Authorization', `Bearer ${token}`)
+}
 
 function goToLogin() {
   if (window.location.hash.startsWith('#/login')) return
@@ -45,7 +58,7 @@ http.interceptors.request.use((config) => {
     const s = JSON.parse(raw) as { access?: string; token?: string }
     const token = s.access || s.token
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+      setAuthHeader(config, token)
     }
   } catch {
     /* ignore */
@@ -89,7 +102,7 @@ http.interceptors.response.use(
     original._retry = true
     const session = authService.getSession()
     if (session?.access) {
-      original.headers.Authorization = `Bearer ${session.access}`
+      setAuthHeader(original, session.access)
     }
     return http(original)
   },
