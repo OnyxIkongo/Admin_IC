@@ -7,6 +7,7 @@ import {
   type ApiBooking,
   type ApiSpace,
 } from '@webPublic/services/backendAdapters'
+import { apiErrorMessage } from '@/utils/apiErrorMessage'
 
 export type ReservationStatus = 'pending' | 'validated' | 'rejected'
 
@@ -16,6 +17,10 @@ export type ReservationRecord = ReservationPayload & {
   status: ReservationStatus
   spaceId?: Id
   spaceName?: string
+}
+
+function mapSingleBooking(data: ApiBooking, spaceById: Map<string, ReturnType<typeof mapSpaceToDomain>>) {
+  return mapBookingToReservation(data, spaceById)
 }
 
 export const reservationsService = {
@@ -30,19 +35,14 @@ export const reservationsService = {
     return asList<ApiBooking>(bookings.data).map((booking) => mapBookingToReservation(booking, spaceById))
   },
 
-  async setStatus(id: Id, status: ReservationStatus): Promise<ReservationRecord | undefined> {
-    if (status === 'rejected') {
-      await http.post(`/bookings/${id}/cancel/`, {})
+  async setStatus(id: Id, status: ReservationStatus): Promise<ReservationRecord> {
+    const path =
+      status === 'validated' ? `/bookings/${id}/validate/` : `/bookings/${id}/cancel/`
+    try {
+      const { data } = await http.post<ApiBooking>(path, {})
+      return mapSingleBooking(data, new Map())
+    } catch (err) {
+      throw new Error(apiErrorMessage(err))
     }
-    if (status === 'validated') {
-      try {
-        await http.post(`/bookings/${id}/validate/`, {})
-      } catch (e) {
-        // Si l’API n’expose pas d’action "validate", on remonte l’erreur pour feedback UI.
-        throw e
-      }
-    }
-    const rows = await this.listAll()
-    return rows.find((row) => row.id === id)
   },
 }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { dayjs } from '@/utils/dayjsFr'
 import { Icon } from '@/components/ui/Icon'
 import { reservationsService, type ReservationRecord, type ReservationStatus } from '@/services/reservationsService'
+import type { Id } from '@/types/domain'
 import { apiErrorMessage } from '@/utils/apiErrorMessage'
 import { ApiErrorBanner } from '@/components/admin/ApiErrorBanner'
 import { cn } from '@/utils/cn'
@@ -26,6 +27,8 @@ export function AdminReservationsPage() {
   const [items, setItems] = useState<ReservationRecord[]>([])
   const [filter, setFilter] = useState<'all' | ReservationStatus>('all')
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [actionId, setActionId] = useState<Id | null>(null)
 
   const reload = () => {
     void reservationsService
@@ -70,6 +73,7 @@ export function AdminReservationsPage() {
         </p>
         <h2 className="text-2xl font-bold text-on-surface tracking-tight">Réservations</h2>
         <ApiErrorBanner message={loadError} onDismiss={() => setLoadError(null)} />
+        <ApiErrorBanner message={actionError} onDismiss={() => setActionError(null)} />
         <div className="mt-4 flex gap-2 overflow-x-auto pb-2 no-scrollbar">
           {[
             { key: 'all', label: 'Toutes' },
@@ -199,10 +203,18 @@ export function AdminReservationsPage() {
                         type="button"
                         className="flex-1 py-2 bg-primary text-on-primary text-xs font-bold rounded-lg uppercase tracking-wider transition-opacity hover:opacity-90"
                         onClick={async () => {
-                          const updated = await reservationsService.setStatus(r.id, 'validated')
-                          if (!updated) return
-                          setItems((prev) => prev.map((x) => (x.id === updated.id ? updated : x)))
+                          setActionError(null)
+                          setActionId(r.id)
+                          try {
+                            const updated = await reservationsService.setStatus(r.id, 'validated')
+                            setItems((prev) => prev.map((x) => (x.id === updated.id ? updated : x)))
+                          } catch (e) {
+                            setActionError(apiErrorMessage(e))
+                          } finally {
+                            setActionId(null)
+                          }
                         }}
+                        disabled={actionId === r.id}
                       >
                         Valider
                       </button>
@@ -211,10 +223,18 @@ export function AdminReservationsPage() {
                       type="button"
                       className="px-4 py-2 bg-surface-container-high text-on-surface-variant text-xs font-bold rounded-lg uppercase tracking-wider hover:bg-error-container hover:text-error transition-colors"
                       onClick={async () => {
-                        const updated = await reservationsService.setStatus(r.id, 'rejected')
-                        if (!updated) return
-                        setItems((prev) => prev.map((x) => (x.id === updated.id ? updated : x)))
+                        setActionError(null)
+                        setActionId(r.id)
+                        try {
+                          const updated = await reservationsService.setStatus(r.id, 'rejected')
+                          setItems((prev) => prev.map((x) => (x.id === updated.id ? updated : x)))
+                        } catch (e) {
+                          setActionError(apiErrorMessage(e))
+                        } finally {
+                          setActionId(null)
+                        }
                       }}
+                      disabled={actionId === r.id}
                     >
                       {r.status === 'pending' ? 'Refuser' : 'Annuler'}
                     </button>
