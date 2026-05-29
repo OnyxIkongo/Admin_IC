@@ -37,7 +37,9 @@ export const reservationsService = {
 
   async setStatus(id: Id, status: ReservationStatus): Promise<ReservationRecord> {
     const path =
-      status === 'validated' ? `/bookings/${id}/validate/` : `/bookings/${id}/cancel/`
+      status === 'validated'
+        ? `/admin/bookings/${id}/validate/`
+        : `/admin/bookings/${id}/reject/`
     try {
       const { data } = await http.post<ApiBooking>(path, {})
       return mapSingleBooking(data, new Map())
