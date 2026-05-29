@@ -26,7 +26,8 @@ function goToLogin() {
 
 export const http = axios.create({
   baseURL,
-  timeout: 25_000,
+  // Uploads passent par fetch (120s). Les listes admin peuvent attendre un cold start Render.
+  timeout: 60_000,
 })
 
 type RetryConfig = InternalAxiosRequestConfig & { _retry?: boolean }

@@ -3,6 +3,9 @@ import { getApiBaseUrl, isApiConfiguredForProduction } from '@/config/apiBaseUrl
 import { authService } from '@/services/authService'
 
 const SESSION_KEY = 'ingenious_city_admin_session'
+/** Compression image + cold start Render : délai généreux. */
+const UPLOAD_TIMEOUT_MS = 120_000
+const UPLOAD_MAX_ATTEMPTS = 2
 
 function getAccessToken(): string | null {
   try {
@@ -42,28 +45,78 @@ function buildUploadUrl(path: string): string {
       'API non configurée : définissez VITE_API_BASE_URL (ex. https://ingenious-city-api.onrender.com/api) sur Render puis redéployez.',
     )
   }
+  let url: string
   if (!base || base === '/api') {
-    return `${base}${path.startsWith('/') ? path : `/${path}`}`
+    url = `${base}${path.startsWith('/') ? path : `/${path}`}`
+  } else {
+    try {
+      url = new URL(path.startsWith('/') ? path : `/${path}`, `${base}/`).toString()
+    } catch {
+      throw new Error(`URL API invalide (${base}). Vérifiez VITE_API_BASE_URL sur Render.`)
+    }
   }
-  try {
-    // Valide l’URL (évite ERR_NAME_NOT_RESOLVED si la variable d’env est mal formée).
-    return new URL(path.startsWith('/') ? path : `/${path}`, `${base}/`).toString()
-  } catch {
-    throw new Error(`URL API invalide (${base}). Vérifiez VITE_API_BASE_URL sur Render.`)
+  if (url.startsWith('http') && !url.includes('/api/')) {
+    throw new Error(
+      `URL API incorrecte (${url}). VITE_API_BASE_URL doit finir par /api (ex. https://ingenious-city-api.onrender.com/api).`,
+    )
   }
+  return url
 }
 
 async function fetchMultipartOnce(url: string, form: FormData, token: string | null): Promise<Response> {
   const headers: HeadersInit = {}
   if (token) headers.Authorization = `Bearer ${token}`
-  return fetch(url, { method: 'POST', headers, body: form })
+  const controller = new AbortController()
+  const timer = window.setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS)
+  try {
+    return await fetch(url, { method: 'POST', headers, body: form, signal: controller.signal })
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error(
+        'Upload trop long (timeout). Réessayez avec une image plus légère ou attendez que l’API Render se réveille.',
+      )
+    }
+    if (!url.includes('/api/')) {
+      throw new Error(
+        `URL API incorrecte (${url}). VITE_API_BASE_URL doit finir par /api (ex. https://ingenious-city-api.onrender.com/api).`,
+      )
+    }
+    throw new Error('Impossible de joindre l’API (réseau ou serveur en veille sur Render). Réessayez dans quelques secondes.')
+  } finally {
+    window.clearTimeout(timer)
+  }
+}
+
+function isRetryableUploadError(err: unknown): boolean {
+  if (err instanceof Error) {
+    return (
+      err.message.includes('joindre l’API') ||
+      err.message.includes('timeout') ||
+      err.message.includes('Render')
+    )
+  }
+  return false
 }
 
 /** Upload multipart fiable (fetch, sans Content-Type axios incorrect). */
 export async function postMultipart<T>(path: string, form: FormData): Promise<T> {
   const url = buildUploadUrl(path)
   let token = getAccessToken()
-  let res = await fetchMultipartOnce(url, form, token)
+  let lastErr: unknown
+  let res: Response | null = null
+
+  for (let attempt = 1; attempt <= UPLOAD_MAX_ATTEMPTS; attempt++) {
+    try {
+      res = await fetchMultipartOnce(url, form, token)
+      lastErr = null
+      break
+    } catch (err) {
+      lastErr = err
+      if (attempt >= UPLOAD_MAX_ATTEMPTS || !isRetryableUploadError(err)) throw err
+      await new Promise((r) => window.setTimeout(r, 2000 * attempt))
+    }
+  }
+  if (!res) throw lastErr instanceof Error ? lastErr : new Error('Upload impossible.')
 
   if (res.status === 401 && token) {
     const refreshed = await authService.tryRefreshAccess()
