@@ -10,6 +10,7 @@ const jsFiles = readdirSync(distAssets).filter((f) => f.endsWith('.js'))
 
 const badPattern = /onrender\.com\/admin\//
 const goodPattern = /onrender\.com\/api\/admin\//
+const setStatusPattern = /setStatus\([^)]*\)\{[^}]{0,280}/
 
 for (const file of jsFiles) {
   const content = readFileSync(join(distAssets, file), 'utf8')
@@ -17,6 +18,14 @@ for (const file of jsFiles) {
     console.error(`[verify-build] ${file} contient une URL API sans /api — build refusé.`)
     process.exit(1)
   }
+
+  const setStatus = content.match(setStatusPattern)?.[0] ?? ''
+  if (setStatus && !setStatus.includes('/admin/bookings/')) {
+    console.error(
+      `[verify-build] ${file} : setStatus n'utilise pas /admin/bookings/ — build refusé.`,
+    )
+    process.exit(1)
+  }
 }
 
-console.log('[verify-build] URLs API admin OK (/api/admin).')
+console.log('[verify-build] URLs API admin OK (/api/admin + validate/reject).')

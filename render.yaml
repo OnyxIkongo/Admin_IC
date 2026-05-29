@@ -13,6 +13,16 @@ services:
       - type: rewrite
         source: /*
         destination: /index.html
+    headers:
+      - path: /index.html
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate
+      - path: /*
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
     envVars:
       # Obligatoire : https:// au début (sinon ERR_NAME_NOT_RESOLVED)
       - key: VITE_API_BASE_URL
