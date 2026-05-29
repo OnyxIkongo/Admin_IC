@@ -114,11 +114,17 @@ export const authService = {
     const session = this.getSession()
     if (!session?.refresh) return false
     try {
-      const { data } = await tokenClient.post<{ access: string }>('/auth/refresh/', {
-        refresh: session.refresh,
-      })
+      const { data } = await tokenClient.post<{ access: string; refresh?: string }>(
+        '/auth/refresh/',
+        { refresh: session.refresh },
+      )
       if (!data?.access) return false
-      const next: AdminSession = { ...session, access: data.access }
+      // ROTATE_REFRESH_TOKENS=true côté Django : il faut conserver le nouveau refresh.
+      const next: AdminSession = {
+        ...session,
+        access: data.access,
+        refresh: data.refresh ?? session.refresh,
+      }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
       return true
     } catch {

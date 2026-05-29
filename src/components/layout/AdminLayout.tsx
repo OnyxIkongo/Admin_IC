@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { Icon } from '@/components/ui/Icon'
 import { cn } from '@/utils/cn'
@@ -100,6 +101,17 @@ function MobileBottomNav() {
 }
 
 export function AdminLayout() {
+  useEffect(() => {
+    const session = authService.getSession()
+    if (!session?.refresh) return
+    // Renouveler avant expiration access (60 min par défaut côté API).
+    void authService.tryRefreshAccess()
+    const timer = window.setInterval(() => {
+      void authService.tryRefreshAccess()
+    }, 45 * 60 * 1000)
+    return () => window.clearInterval(timer)
+  }, [])
+
   return (
     <div className="min-h-screen bg-surface text-on-surface">
       <AdminTopBar />
