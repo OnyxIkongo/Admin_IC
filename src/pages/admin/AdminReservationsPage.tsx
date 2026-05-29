@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { dayjs } from '@/utils/dayjsFr'
 import { Icon } from '@/components/ui/Icon'
 import { reservationsService, type ReservationRecord, type ReservationStatus } from '@/services/reservationsService'
@@ -30,22 +30,32 @@ export function AdminReservationsPage() {
   const [actionError, setActionError] = useState<string | null>(null)
   const [actionId, setActionId] = useState<Id | null>(null)
 
-  const reload = () => {
-    void reservationsService
-      .listAll()
-      .then((rows) => {
-        setLoadError(null)
-        setItems(rows)
-      })
-      .catch((e) => {
+  const reload = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false
+    try {
+      const rows = await reservationsService.listAll()
+      if (!silent) setLoadError(null)
+      setItems(rows)
+    } catch (e) {
+      if (!silent) {
         setLoadError(apiErrorMessage(e))
         setItems([])
-      })
-  }
+      }
+    }
+  }, [])
 
   useEffect(() => {
-    reload()
-  }, [])
+    void reload()
+    const intervalId = window.setInterval(() => void reload({ silent: true }), 15_000)
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void reload({ silent: true })
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      window.clearInterval(intervalId)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [reload])
 
   const upcomingItems = useMemo(() => {
     const todayISO = new Date().toISOString().slice(0, 10)
