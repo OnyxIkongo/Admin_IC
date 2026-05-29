@@ -45,16 +45,9 @@ function buildUploadUrl(path: string): string {
       'API non configurée : définissez VITE_API_BASE_URL (ex. https://ingenious-city-api.onrender.com/api) sur Render puis redéployez.',
     )
   }
-  let url: string
-  if (!base || base === '/api') {
-    url = `${base}${path.startsWith('/') ? path : `/${path}`}`
-  } else {
-    try {
-      url = new URL(path.startsWith('/') ? path : `/${path}`, `${base}/`).toString()
-    } catch {
-      throw new Error(`URL API invalide (${base}). Vérifiez VITE_API_BASE_URL sur Render.`)
-    }
-  }
+  // Ne pas utiliser new URL('/admin/...', base) : le / initial remplace /api dans le chemin.
+  const segment = path.replace(/^\/+/, '')
+  const url = `${base}/${segment}`
   if (url.startsWith('http') && !url.includes('/api/')) {
     throw new Error(
       `URL API incorrecte (${url}). VITE_API_BASE_URL doit finir par /api (ex. https://ingenious-city-api.onrender.com/api).`,
