@@ -295,6 +295,8 @@ function mapAdminSpaceTypeToKind(type: string): string {
   if (type === 'Private Office') return 'office'
   if (type === 'Coworking') return 'coworking'
   if (type === 'Event Space') return 'event_room'
+  // Backend n'a pas (encore) de kind "meeting_room" : on stocke le détail dans extra.display_type.
+  if (type === 'Meeting Room') return 'event_room'
   return 'event_room'
 }
 
@@ -306,9 +308,9 @@ function numberFromCapacityLabel(label: string): number | null {
 export function mapSpaceToDomain(space: ApiSpace): Space {
   const extra = asRecord(space.extra)
   const apiKind = asString(space.kind)
-  const type = apiKind
-    ? mapSpaceKindToLabel(apiKind)
-    : asString(space.type || extra.display_type || extra.type, 'Meeting Room')
+  // Important: le backend utilise parfois kind=event_room pour plusieurs sous-types.
+  // On préfère donc l'intention admin (extra.display_type) quand disponible.
+  const type = asString(space.type || extra.display_type || extra.type, '') || (apiKind ? mapSpaceKindToLabel(apiKind) : 'Meeting Room')
   const availability = asString(extra.availability, 'available') as Space['availability']
   return {
     id: String(space.id),
