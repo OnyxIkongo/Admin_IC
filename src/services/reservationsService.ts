@@ -32,7 +32,13 @@ export const reservationsService = {
     const spaceById = new Map(
       asList<ApiSpace>(spaces.data).map((space) => [String(space.id), mapSpaceToDomain(space)]),
     )
-    return asList<ApiBooking>(bookings.data).map((booking) => mapBookingToReservation(booking, spaceById))
+    return asList<ApiBooking>(bookings.data)
+      .map((booking) => mapBookingToReservation(booking, spaceById))
+      .sort((a, b) => {
+        const byCreated = b.createdAtISO.localeCompare(a.createdAtISO)
+        if (byCreated !== 0) return byCreated
+        return String(b.id).localeCompare(String(a.id), undefined, { numeric: true })
+      })
   },
 
   async setStatus(id: Id, status: ReservationStatus): Promise<ReservationRecord> {
