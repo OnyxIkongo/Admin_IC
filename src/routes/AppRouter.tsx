@@ -1,5 +1,6 @@
 import { createHashRouter, Navigate, RouterProvider } from 'react-router-dom'
 import { AdminLayout } from '@/components/layout/AdminLayout'
+import { RouterErrorScreen } from '@/components/ui/RouterErrorScreen'
 import { RequireAdmin } from './RequireAdmin'
 
 import { AdminLoginPage } from '@/pages/admin/AdminLoginPage'
@@ -10,24 +11,30 @@ import { AdminReservationsPage } from '@/pages/admin/AdminReservationsPage'
 
 /** HashRouter : /#/login fonctionne sur Render sans règle Rewrite (fichiers statiques). */
 const router = createHashRouter([
-  { path: '/login', element: <AdminLoginPage /> },
   {
-    element: <RequireAdmin />,
+    id: 'root',
+    errorElement: <RouterErrorScreen />,
     children: [
+      { path: '/login', element: <AdminLoginPage /> },
       {
-        path: '/',
-        element: <AdminLayout />,
+        element: <RequireAdmin />,
         children: [
-          { index: true, element: <Navigate to="/dashboard" replace /> },
-          { path: 'dashboard', element: <AdminDashboardPage /> },
-          { path: 'reservations', element: <AdminReservationsPage /> },
-          { path: 'events', element: <AdminEventsPage /> },
-          { path: 'spaces', element: <AdminSpacesPage /> },
+          {
+            path: '/',
+            element: <AdminLayout />,
+            children: [
+              { index: true, element: <Navigate to="/dashboard" replace /> },
+              { path: 'dashboard', element: <AdminDashboardPage /> },
+              { path: 'reservations', element: <AdminReservationsPage /> },
+              { path: 'events', element: <AdminEventsPage /> },
+              { path: 'spaces', element: <AdminSpacesPage /> },
+            ],
+          },
         ],
       },
+      { path: '*', element: <Navigate to="/dashboard" replace /> },
     ],
   },
-  { path: '*', element: <Navigate to="/dashboard" replace /> },
 ])
 
 export function AppRouter() {

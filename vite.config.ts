@@ -21,6 +21,7 @@ function resolveBuildApiBaseUrl(): string {
 }
 
 const buildApiBaseUrl = resolveBuildApiBaseUrl()
+const buildId = process.env.VITE_BUILD_ID?.trim() || String(Date.now())
 
 /** Dev : Django sur le Bureau (ex. `python manage.py runserver 8000` → port 8000). Prod : définir `VITE_API_BASE_URL`. */
 export default defineConfig({
@@ -28,6 +29,7 @@ export default defineConfig({
   define: {
     'import.meta.env.VITE_API_BASE_URL': JSON.stringify(buildApiBaseUrl),
     'import.meta.env.VITE_API_URL': JSON.stringify(buildApiBaseUrl),
+    'import.meta.env.VITE_BUILD_ID': JSON.stringify(buildId),
   },
   server: {
     port: 5174,
@@ -41,5 +43,10 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
       '@webPublic': path.resolve(__dirname, './src/webPublic'),
     },
+  },
+  build: {
+    target: 'es2020',
+    modulePreload: { polyfill: true },
+    sourcemap: false,
   },
 })
