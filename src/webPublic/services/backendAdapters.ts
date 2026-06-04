@@ -552,7 +552,9 @@ export function buildSpacePayload(body: SpacePayloadInput, options?: BuildSpaceP
     description: body.description ?? '',
     is_active: body.is_active ?? true,
     extra: {
-      // Préserver la galerie (sinon elle disparaît après un PATCH).
+      // Préserver galerie + couverture (sinon disparition après PATCH).
+      image_path: prevExtra.image_path,
+      image_url: prevExtra.image_url,
       gallery_paths: prevExtra.gallery_paths,
       gallery_urls: prevExtra.gallery_urls,
       gallery: prevExtra.gallery,
