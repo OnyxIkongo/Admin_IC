@@ -18,7 +18,6 @@ function compareReservationsNewestFirst(a: ReservationRecord, b: ReservationReco
   if (byCreated !== 0) return byCreated
   return String(b.id).localeCompare(String(a.id), undefined, { numeric: true })
 }
-
 export function AdminReservationsPage() {
   const [items, setItems] = useState<ReservationRecord[]>([])
   const [filter, setFilter] = useState<'all' | ReservationStatus>('all')
