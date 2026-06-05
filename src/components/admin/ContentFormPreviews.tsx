@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { dayjs } from '@/utils/dayjsFr'
 import { eventCategoryLabelFr } from '@/utils/eventDisplay'
 import { programCategoryLabel } from '@webPublic/utils/programDisplay'
@@ -301,6 +302,7 @@ export function SpaceSitePreview({
   isActive: boolean
 }) {
   const equipment = parseEquipment(equipmentJson)
+  const [activeEquipLabel, setActiveEquipLabel] = useState<string | null>(null)
 
   return (
     <div className={cn(intakeFormCard, 'p-4 md:p-5')}>
@@ -352,16 +354,28 @@ export function SpaceSitePreview({
       {equipment.length > 0 ? (
         <div className="mt-3">
           <h4 className="font-headline text-sm font-semibold mb-2">Équipements</h4>
-          <div className="flex max-w-full flex-nowrap items-center gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex max-w-full flex-nowrap items-center gap-1 overflow-x-auto md:overflow-visible [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {equipment.map((e) => (
-              <span key={e.label} className="group/icon relative shrink-0">
+              <span
+                key={e.label}
+                className="relative shrink-0"
+                onMouseEnter={() => setActiveEquipLabel(e.label)}
+                onMouseLeave={() => setActiveEquipLabel(null)}
+              >
                 <span
                   className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-outline-variant/12 bg-surface-container-low text-primary"
                   aria-label={e.label}
                 >
                   <Icon name={normalizeEquipmentIcon(e.icon)} className="text-[13px] leading-none" />
                 </span>
-                <span className="pointer-events-none absolute bottom-[calc(100%+5px)] left-1/2 z-10 hidden -translate-x-1/2 whitespace-nowrap rounded bg-on-surface px-2 py-0.5 text-[10px] font-medium leading-tight text-surface opacity-0 shadow-sm transition-opacity group-hover/icon:opacity-100 max-md:hidden md:block">
+                <span
+                  className={cn(
+                    'pointer-events-none absolute left-1/2 top-[calc(100%+6px)] z-50 -translate-x-1/2 whitespace-nowrap',
+                    'rounded bg-on-surface px-2 py-0.5 text-[10px] font-medium leading-tight text-surface shadow-md',
+                    'transition-opacity duration-100 max-md:hidden',
+                    activeEquipLabel === e.label ? 'opacity-100' : 'opacity-0',
+                  )}
+                >
                   {e.label}
                 </span>
               </span>
