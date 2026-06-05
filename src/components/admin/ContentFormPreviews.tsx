@@ -5,6 +5,7 @@ import { spaceTypeLabelFr } from '@/utils/spaceDisplay'
 import { Icon } from '@/components/ui/Icon'
 import { cn } from '@/utils/cn'
 import { intakeEyebrow, intakeFormCard } from '@webPublic/utils/intakeFormStyles'
+import { normalizeEquipmentIcon } from '@webPublic/utils/spaceEquipment'
 import { formatDateRangeFr } from '@/utils/formatDateRangeFr'
 
 type Speaker = { name: string; role: string; avatarUrl: string }
@@ -331,7 +332,10 @@ export function SpaceSitePreview({
       </div>
       <div className="mt-3 grid grid-cols-2 gap-3">
         <div className="border-l border-outline-variant/20 pl-3">
-          <span className="font-headline text-xl font-bold text-primary">{capacityLabel || '—'}</span>
+          <span className="inline-flex items-center gap-1.5 font-headline text-xl font-bold text-primary">
+            <Icon name="event_seat" className="text-lg" />
+            {capacityLabel || '—'}
+          </span>
           <span className="font-label text-[9px] uppercase tracking-widest text-on-surface-variant block">Capacité</span>
         </div>
         <div className="border-l border-outline-variant/20 pl-3">
@@ -348,12 +352,21 @@ export function SpaceSitePreview({
       {equipment.length > 0 ? (
         <div className="mt-3">
           <h4 className="font-headline text-sm font-semibold mb-2">Équipements</h4>
-          <div className="flex flex-col gap-2">
-            {equipment.slice(0, 4).map((e) => (
-              <div key={e.label} className="flex items-center gap-3 p-2 bg-surface-container-lowest rounded-lg text-xs">
-                <Icon name={e.icon || 'check'} className="text-primary" />
-                <span>{e.label}</span>
-              </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {equipment.map((e) => (
+              <span key={e.label} className="group relative inline-flex items-center">
+                <span
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-outline-variant/15 bg-surface-container-low text-primary"
+                  title={e.label}
+                  aria-label={e.label}
+                >
+                  <Icon name={normalizeEquipmentIcon(e.icon)} className="text-base" />
+                </span>
+                <span className="ml-1.5 text-[11px] text-on-surface-variant md:hidden">{e.label}</span>
+                <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-on-surface px-2 py-1 text-[10px] font-medium text-surface opacity-0 shadow-md transition-opacity group-hover:opacity-100 md:block">
+                  {e.label}
+                </span>
+              </span>
             ))}
           </div>
         </div>

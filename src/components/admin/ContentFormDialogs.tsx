@@ -16,6 +16,7 @@ import {
   intakeSubmit,
   intakeTextarea,
 } from '@webPublic/utils/intakeFormStyles'
+import { DEFAULT_SPACE_EQUIPMENT } from '@webPublic/utils/spaceEquipment'
 import { ActivityBasicForm } from '@/components/admin/ActivityBasicForm'
 import { apiErrorMessage } from '@/utils/apiErrorMessage'
 
@@ -548,10 +549,7 @@ export function SpaceFormDialog({
       availability_label: availabilityLabelFor(availability),
       image_url: '',
       description: description.trim(),
-      equipment: [
-        { icon: 'wifi', label: 'Wi‑Fi haut débit' },
-        { icon: 'ac_unit', label: 'Climatisation' },
-      ],
+      equipment: DEFAULT_SPACE_EQUIPMENT,
       is_active: (initial?.is_active ?? initial?.isActive) !== false,
     }
     if (!body.name) {
