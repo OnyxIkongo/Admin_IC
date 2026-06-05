@@ -352,18 +352,16 @@ export function SpaceSitePreview({
       {equipment.length > 0 ? (
         <div className="mt-3">
           <h4 className="font-headline text-sm font-semibold mb-2">Équipements</h4>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex max-w-full flex-nowrap items-center gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {equipment.map((e) => (
-              <span key={e.label} className="group relative inline-flex items-center">
+              <span key={e.label} className="group/icon relative shrink-0">
                 <span
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-outline-variant/15 bg-surface-container-low text-primary"
-                  title={e.label}
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-outline-variant/12 bg-surface-container-low text-primary"
                   aria-label={e.label}
                 >
-                  <Icon name={normalizeEquipmentIcon(e.icon)} className="text-base" />
+                  <Icon name={normalizeEquipmentIcon(e.icon)} className="text-[13px] leading-none" />
                 </span>
-                <span className="ml-1.5 text-[11px] text-on-surface-variant md:hidden">{e.label}</span>
-                <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-on-surface px-2 py-1 text-[10px] font-medium text-surface opacity-0 shadow-md transition-opacity group-hover:opacity-100 md:block">
+                <span className="pointer-events-none absolute bottom-[calc(100%+5px)] left-1/2 z-10 hidden -translate-x-1/2 whitespace-nowrap rounded bg-on-surface px-2 py-0.5 text-[10px] font-medium leading-tight text-surface opacity-0 shadow-sm transition-opacity group-hover/icon:opacity-100 max-md:hidden md:block">
                   {e.label}
                 </span>
               </span>
